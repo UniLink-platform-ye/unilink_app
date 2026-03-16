@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "745241665960",
+    "project_id": "trusted-social-platform",
+    "storage_bucket": "trusted-social-platform.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:745241665960:android:76f3ebc076062da1913d9d",
+        "android_client_info": {
+          "package_name": "com.unilink.trustednetwork"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAm5x_WHEPV3S7yHvG-E2f8mxKzgFdLbK8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
