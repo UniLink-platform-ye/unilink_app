@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import 'otp_screen.dart';
 import 'register_screen.dart';
+import '../../widgets/server_config_dialog.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -60,9 +61,11 @@ class _LoginScreenState extends State<LoginScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-          child: Form(
+        child: Stack(
+          children: [
+            SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+              child: Form(
             key: _formKey,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -83,8 +86,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
                 const SizedBox(height: 24),
-                const Text('Secure Uni Network', textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Color(0xFF1E3A5F))),
+                const Text('TRUSTED SOCIAL NETWORK\nPLATFORM', textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF1E3A5F))),
                 const Text('سجّل دخولك للمنصة الأكاديمية الموثوقة', textAlign: TextAlign.center,
                   style: TextStyle(color: Color(0xFF64748B), fontSize: 14)),
                 const SizedBox(height: 40),
@@ -168,7 +171,17 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ),
         ),
-      ),
-    );
+        Positioned(
+          top: 8, left: 8,
+          child: IconButton(
+            icon: const Icon(Icons.settings, color: Colors.grey),
+            tooltip: 'إعدادات السيرفر',
+            onPressed: () => showServerConfigDialog(context),
+          ),
+        ),
+      ],
+    ),
+  ),
+);
   }
 }

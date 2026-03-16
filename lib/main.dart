@@ -4,9 +4,11 @@ import 'package:provider/provider.dart';
 import 'services/fcm_service.dart';
 import 'providers/auth_provider.dart';
 import 'screens/splash_screen.dart';
+import 'config/api_config.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await ApiConfig.loadHost();
   await Firebase.initializeApp();
   await FcmService.initialize();
   runApp(const UniLinkApp());

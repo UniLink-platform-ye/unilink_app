@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import 'otp_screen.dart';
+import '../../widgets/server_config_dialog.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -52,7 +53,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
     final auth = context.watch<AuthProvider>();
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
-      appBar: AppBar(title: const Text('إنشاء حساب جديد'), elevation: 0),
+      appBar: AppBar(
+        title: const Text('إنشاء حساب جديد'),
+        elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings),
+            tooltip: 'إعدادات السيرفر',
+            onPressed: () => showServerConfigDialog(context),
+          ),
+        ],
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),

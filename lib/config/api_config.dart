@@ -1,24 +1,36 @@
+import 'package:shared_preferences/shared_preferences.dart';
+
 /// api_config.dart — جميع نقاط API
 class ApiConfig {
-  // ─── غيّر هذا لـ IP جهازك أو دومين السيرفر ───
-  static const String _host =
-      'http://192.168.1.20/Trusted-Social-Network-Platform/api/v1';
-  // 10.0.2.2 = localhost من داخل Android Emulator
-  // للجهاز الحقيقي: استخدم IP جهازك مثل http://192.168.x.x/...
+  static String _serverIp = '192.168.1.20';
+  static String get _host => 'http://$_serverIp/Trusted-Social-Network-Platform/api/v1';
+
+  static Future<void> loadHost() async {
+    final prefs = await SharedPreferences.getInstance();
+    _serverIp = prefs.getString('server_ip') ?? '192.168.1.20';
+  }
+
+  static Future<void> setHost(String ip) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('server_ip', ip);
+    _serverIp = ip;
+  }
+
+  static String get serverIp => _serverIp;
 
   // Auth
-  static const String login      = '$_host/auth/login.php';
-  static const String verifyOtp   = '$_host/auth/verify_otp.php';
-  static const String resendOtp   = '$_host/auth/resend_otp.php';
-  static const String register    = '$_host/auth/register.php';
+  static String get login      => '$_host/auth/login.php';
+  static String get verifyOtp   => '$_host/auth/verify_otp.php';
+  static String get resendOtp   => '$_host/auth/resend_otp.php';
+  static String get register    => '$_host/auth/register.php';
 
   // Content
-  static const String feed         = '$_host/feed.php';
-  static const String posts        = '$_host/posts.php';
-  static const String groups       = '$_host/groups.php';
-  static const String messages     = '$_host/messages.php';
-  static const String notifications = '$_host/notifications.php';
-  static const String fcmToken     = '$_host/fcm_token.php';
-  static const String profile      = '$_host/profile.php';
-  static const String files        = '$_host/files.php';
+  static String get feed         => '$_host/feed.php';
+  static String get posts        => '$_host/posts.php';
+  static String get groups       => '$_host/groups.php';
+  static String get messages     => '$_host/messages.php';
+  static String get notifications => '$_host/notifications.php';
+  static String get fcmToken     => '$_host/fcm_token.php';
+  static String get profile      => '$_host/profile.php';
+  static String get files        => '$_host/files.php';
 }

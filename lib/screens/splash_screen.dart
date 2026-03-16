@@ -69,8 +69,9 @@ class _SplashScreenState extends State<SplashScreen>
                 ),
                 const SizedBox(height: 20),
                 const Text(
-                  'Secure Uni Network',
-                  style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.w900, letterSpacing: 0.5),
+                  'TRUSTED SOCIAL NETWORK\nPLATFORM',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: 0.5),
                 ),
                 const SizedBox(height: 6),
                 Text(
