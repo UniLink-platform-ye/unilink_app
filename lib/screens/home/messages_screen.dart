@@ -57,23 +57,87 @@ class _MessagesScreenState extends State<MessagesScreen> {
                             ? Badge(label: Text('${c['unread']}'), child: const SizedBox.shrink())
                             : null,
                         onTap: () => Navigator.push(context, MaterialPageRoute(
-                          builder: (_) => _ChatScreen(userId: c['user_id'] as int, name: c['full_name'] as String? ?? ''),
+                          builder: (_) => ChatScreen(userId: c['user_id'] as int, name: c['full_name'] as String? ?? ''),
                         )).then((_) => _load()),
                       );
                     },
                   ),
                 ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => showSearch(context: context, delegate: _UserSearchDelegate()),
+        icon: const Icon(Icons.add_comment),
+        label: const Text('محادثة جديدة'),
+      ),
     );
   }
 }
 
-class _ChatScreen extends StatefulWidget {
-  final int userId; final String name;
-  const _ChatScreen({required this.userId, required this.name});
-  @override State<_ChatScreen> createState() => _ChatScreenState();
+class _UserSearchDelegate extends SearchDelegate<void> {
+  @override
+  String get searchFieldLabel => 'ابحث عن زميل...';
+
+  @override
+  List<Widget> buildActions(BuildContext context) {
+    return [if (query.isNotEmpty) IconButton(icon: const Icon(Icons.clear), onPressed: () => query = '')];
+  }
+
+  @override
+  Widget buildLeading(BuildContext context) {
+    return IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => close(context, null));
+  }
+
+  @override
+  Widget buildResults(BuildContext context) => _buildList(context);
+
+  @override
+  Widget buildSuggestions(BuildContext context) => _buildList(context);
+
+  Widget _buildList(BuildContext context) {
+    if (query.trim().isEmpty) return const Center(child: Text('ابحث بالاسم أو القسم لبدء محادثة'));
+    return FutureBuilder<Map<String, dynamic>>(
+      future: ApiService.get(ApiConfig.users, params: {'q': query}),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
+        final res = snapshot.data;
+        if (res == null || res['success'] != true) return const Center(child: Text('حدث خطأ أثناء البحث'));
+        final users = res['data']?['users'] as List? ?? [];
+        if (users.isEmpty) return const Center(child: Text('لم يتم العثور على أحد'));
+        
+        return ListView.separated(
+          itemCount: users.length,
+          separatorBuilder: (_, __) => const Divider(height: 0),
+          itemBuilder: (context, i) {
+            final u = users[i] as Map<String, dynamic>;
+            return ListTile(
+              leading: CircleAvatar(
+                backgroundColor: const Color(0xFF2563EB),
+                child: Text((u['full_name'] as String? ?? 'U')[0].toUpperCase(), style: const TextStyle(color: Colors.white)),
+              ),
+              title: Text(u['full_name'] ?? '', style: const TextStyle(fontWeight: FontWeight.w600)),
+              subtitle: Text(u['department'] ?? '', style: const TextStyle(fontSize: 12)),
+              onTap: () {
+                close(context, null);
+                final curRoute = ModalRoute.of(context);
+                if (curRoute != null) Navigator.popUntil(context, (route) => route == curRoute);
+                Navigator.push(context, MaterialPageRoute(
+                  builder: (_) => ChatScreen(userId: u['user_id'] as int, name: u['full_name'] as String? ?? ''),
+                ));
+              },
+            );
+          },
+        );
+      },
+    );
+  }
 }
 
-class _ChatScreenState extends State<_ChatScreen> {
+class ChatScreen extends StatefulWidget {
+  final int userId; final String name;
+  const ChatScreen({super.key, required this.userId, required this.name});
+  @override State<ChatScreen> createState() => _ChatScreenState();
+}
+
+class _ChatScreenState extends State<ChatScreen> {
   List<dynamic> _msgs = [];
   final _msgCtrl      = TextEditingController();
   final _scroll       = ScrollController();

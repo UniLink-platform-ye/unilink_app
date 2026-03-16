@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:timeago/timeago.dart' as timeago;
+import '../../providers/auth_provider.dart';
 import '../../services/api_service.dart';
 import '../../config/api_config.dart';
+import 'messages_screen.dart';
 
 class FeedScreen extends StatefulWidget {
   const FeedScreen({super.key});
@@ -138,6 +141,9 @@ class _PostCard extends StatelessWidget {
     final type    = post['type'] ?? post['post_type'] ?? 'post';
     final typeIcons = {'post':'📝','announcement':'📢','question':'❓','lecture':'📚'};
 
+    final currentUserId = context.watch<AuthProvider>().user?['user_id'] as int?;
+    final postUserId = post['user_id'] as int?;
+
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
       child: Padding(
@@ -158,7 +164,16 @@ class _PostCard extends StatelessWidget {
                 Text(post['full_name'] ?? '', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
                 Text(timeStr, style: const TextStyle(color: Colors.grey, fontSize: 12)),
               ])),
-              Text(typeIcons[type] ?? '📝', style: const TextStyle(fontSize: 18)),
+              if (currentUserId != null && postUserId != null && currentUserId != postUserId)
+                IconButton(
+                  icon: const Icon(Icons.chat_bubble_outline, color: Color(0xFF2563EB)),
+                  tooltip: 'مراسلة',
+                  onPressed: () => Navigator.push(context, MaterialPageRoute(
+                    builder: (_) => ChatScreen(userId: postUserId, name: post['full_name'] as String? ?? ''),
+                  )),
+                )
+              else
+                Text(typeIcons[type] ?? '📝', style: const TextStyle(fontSize: 18)),
             ]),
             // Group tag
             if (post['group_name'] != null) Padding(

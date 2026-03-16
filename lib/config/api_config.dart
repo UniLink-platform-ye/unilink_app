@@ -29,6 +29,7 @@ class ApiConfig {
   static String get posts        => '$_host/posts.php';
   static String get groups       => '$_host/groups.php';
   static String get messages     => '$_host/messages.php';
+  static String get users        => '$_host/users.php';
   static String get notifications => '$_host/notifications.php';
   static String get fcmToken     => '$_host/fcm_token.php';
   static String get profile      => '$_host/profile.php';
