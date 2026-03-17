@@ -5,6 +5,7 @@ import '../../providers/auth_provider.dart';
 import '../../services/api_service.dart';
 import '../../config/api_config.dart';
 import 'messages_screen.dart';
+import '../support/support_tickets_screen.dart';
 
 class FeedScreen extends StatefulWidget {
   const FeedScreen({super.key});
@@ -57,7 +58,14 @@ class _FeedScreenState extends State<FeedScreen> {
       backgroundColor: const Color(0xFFF1F5F9),
       appBar: AppBar(
         title: const Text('UniLink — الخلاصة'),
-        actions: [IconButton(icon: const Icon(Icons.refresh), onPressed: () => _load(refresh: true))],
+        actions: [
+          IconButton(icon: const Icon(Icons.refresh), onPressed: () => _load(refresh: true)),
+          IconButton(
+            icon: const Icon(Icons.support_agent_outlined),
+            tooltip: 'الدعم الفني',
+            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SupportTicketsScreen())),
+          ),
+        ],
       ),
       body: RefreshIndicator(
         onRefresh: () => _load(refresh: true),
@@ -141,7 +149,8 @@ class _PostCard extends StatelessWidget {
     final type    = post['type'] ?? post['post_type'] ?? 'post';
     final typeIcons = {'post':'📝','announcement':'📢','question':'❓','lecture':'📚'};
 
-    final currentUserId = context.watch<AuthProvider>().user?['user_id'] as int?;
+    final auth = context.watch<AuthProvider>();
+    final currentUserId = auth.user?['user_id'] as int?;
     final postUserId = post['user_id'] as int?;
 
     return Card(
@@ -164,15 +173,30 @@ class _PostCard extends StatelessWidget {
                 Text(post['full_name'] ?? '', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
                 Text(timeStr, style: const TextStyle(color: Colors.grey, fontSize: 12)),
               ])),
-              if (currentUserId != null && postUserId != null && currentUserId != postUserId)
+              if (currentUserId != null && postUserId != null && currentUserId != postUserId) ...[
+                IconButton(
+                  icon: const Icon(Icons.flag_outlined, color: Colors.redAccent),
+                  tooltip: 'إبلاغ عن منشور',
+                  onPressed: () async {
+                    final reason = await _showReportDialog(context);
+                    if (reason == null) return;
+                    await ApiService.post(ApiConfig.reports, {
+                      'post_id': post['post_id'],
+                      'reason': reason,
+                    });
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم إرسال البلاغ للمراجعة')));
+                    }
+                  },
+                ),
                 IconButton(
                   icon: const Icon(Icons.chat_bubble_outline, color: Color(0xFF2563EB)),
                   tooltip: 'مراسلة',
                   onPressed: () => Navigator.push(context, MaterialPageRoute(
                     builder: (_) => ChatScreen(userId: postUserId, name: post['full_name'] as String? ?? ''),
                   )),
-                )
-              else
+                ),
+              ] else
                 Text(typeIcons[type] ?? '📝', style: const TextStyle(fontSize: 18)),
             ]),
             // Group tag
@@ -191,6 +215,41 @@ class _PostCard extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Future<String?> _showReportDialog(BuildContext context) async {
+    String? selected = 'inappropriate_content';
+    final reasons = <String, String>{
+      'spam': 'رسائل مزعجة / دعاية',
+      'harassment': 'مضايقة أو إساءة',
+      'inappropriate_content': 'محتوى غير مناسب',
+      'misinformation': 'معلومات مضللة',
+      'copyright_violation': 'انتهاك حقوق نشر',
+      'other': 'أخرى',
+    };
+    return showDialog<String>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('إبلاغ عن منشور'),
+        content: StatefulBuilder(
+          builder: (ctx, setState) => Column(
+            mainAxisSize: MainAxisSize.min,
+            children: reasons.entries
+                .map((e) => RadioListTile<String>(
+                      title: Text(e.value),
+                      value: e.key,
+                      groupValue: selected,
+                      onChanged: (v) => setState(() => selected = v),
+                    ))
+                .toList(),
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, null), child: const Text('إلغاء')),
+          ElevatedButton(onPressed: () => Navigator.pop(context, selected), child: const Text('إرسال')),
+        ],
       ),
     );
   }

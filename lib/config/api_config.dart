@@ -34,4 +34,9 @@ class ApiConfig {
   static String get fcmToken     => '$_host/fcm_token.php';
   static String get profile      => '$_host/profile.php';
   static String get files        => '$_host/files.php';
+  static String get calendar     => '$_host/calendar.php';
+  static String get reports      => '$_host/reports.php';
+  static String get support      => '$_host/support.php';
+  static String get search       => '$_host/search.php';
+  static String get groupsManage => '$_host/groups_manage.php';
 }

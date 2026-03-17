@@ -22,6 +22,9 @@ dependencies:
   shared_preferences: ^2.3.3
   flutter_secure_storage: ^9.2.2
 
+  # Files
+  file_picker: ^8.1.7
+
   # State Management
   provider: ^6.1.2
 

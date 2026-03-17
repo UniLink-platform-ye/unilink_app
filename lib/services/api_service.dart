@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'dart:io';
 
 class ApiService {
   static const _storage = FlutterSecureStorage();
@@ -60,6 +61,15 @@ class ApiService {
     }
   }
 
+  static Map<String, dynamic> _parseRawBytes(List<int> bytes, int statusCode) {
+    try {
+      return jsonDecode(utf8.decode(bytes)) as Map<String, dynamic>;
+    } catch (e) {
+      _log('PARSE', 'Invalid JSON response ($statusCode)', bytes.length > 300 ? '${utf8.decode(bytes.take(300).toList())}...' : utf8.decode(bytes));
+      return {'success': false, 'error': 'Invalid server response ($statusCode)'};
+    }
+  }
+
   // ─── GET ───────────────────────────────────────────────────
   static Future<Map<String, dynamic>> get(
     String url, {
@@ -80,6 +90,46 @@ class ApiService {
       stopwatch.stop();
       _log('GET', 'ERROR', e);
       _log('GET', 'STACK', st.toString().split('\n').take(5).join('\n'));
+      rethrow;
+    }
+  }
+
+  // ─── MULTIPART (File Upload) ───────────────────────────────
+  static Future<Map<String, dynamic>> postMultipart(
+    String url, {
+    required File file,
+    String fieldName = 'file',
+    Map<String, String>? fields,
+  }) async {
+    final token = await getToken();
+    final uri = Uri.parse(url);
+    _log('MP_POST', uri.toString(), fields);
+    final stopwatch = Stopwatch()..start();
+
+    try {
+      final req = http.MultipartRequest('POST', uri);
+      req.headers.addAll({
+        'Accept': 'application/json',
+        if (token != null) 'Authorization': 'Bearer $token',
+      });
+      if (fields != null) req.fields.addAll(fields);
+      req.files.add(await http.MultipartFile.fromPath(fieldName, file.path));
+
+      final res = await req.send();
+      final bytes = await res.stream.toBytes();
+      stopwatch.stop();
+      _log('MP_POST', '${res.statusCode} $url (${stopwatch.elapsedMilliseconds}ms)');
+      if (res.statusCode >= 400) {
+        final raw = utf8.decode(bytes);
+        _log('MP_POST', 'BODY', raw.length > 500 ? '${raw.substring(0, 500)}...' : raw);
+      }
+      final out = _parseRawBytes(bytes, res.statusCode);
+      if (out.containsKey('error') || (out['success'] == false)) _log('MP_POST', 'RESPONSE', out);
+      return out;
+    } catch (e, st) {
+      stopwatch.stop();
+      _log('MP_POST', 'ERROR', e);
+      _log('MP_POST', 'STACK', st.toString().split('\n').take(5).join('\n'));
       rethrow;
     }
   }
