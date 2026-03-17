@@ -6,6 +6,7 @@ import 'groups_screen.dart';
 import 'messages_screen.dart';
 import '../notifications/notifications_screen.dart';
 import 'profile_screen.dart';
+import '../search/smart_search_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -53,6 +54,15 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: const Text('UniLink'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.search),
+            onPressed: () => showSearch(context: context, delegate: SmartSearchScreen()),
+          ),
+        ],
+      ),
       body: IndexedStack(index: _currentIndex, children: _screens),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _currentIndex,

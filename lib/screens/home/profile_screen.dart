@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/api_service.dart';
+import '../file_center/file_center_screen.dart';
+import '../calendar/calendar_screen.dart';
+import '../support/support_tickets_screen.dart';
 import '../auth/login_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -68,6 +71,36 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 if (_user!['department'] != null && _user!['department'].toString().isNotEmpty)
                   _InfoCard(icon: Icons.school_outlined, label: 'القسم', value: _user!['department']),
                 const SizedBox(height: 24),
+                Card(
+                  child: ListTile(
+                    leading: const Icon(Icons.folder_open, color: Color(0xFF2563EB)),
+                    title: const Text('مركز الملفات', style: TextStyle(fontWeight: FontWeight.w700)),
+                    subtitle: const Text('تصفح ورفع المحاضرات والواجبات والمراجع', style: TextStyle(fontSize: 12)),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FileCenterScreen())),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Card(
+                  child: ListTile(
+                    leading: const Icon(Icons.calendar_today_outlined, color: Color(0xFF2563EB)),
+                    title: const Text('التقويم الأكاديمي', style: TextStyle(fontWeight: FontWeight.w700)),
+                    subtitle: const Text('عرض المحاضرات والاختبارات والمهام القادمة', style: TextStyle(fontSize: 12)),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CalendarScreen())),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Card(
+                  child: ListTile(
+                    leading: const Icon(Icons.support_agent_outlined, color: Color(0xFF2563EB)),
+                    title: const Text('الدعم الفني', style: TextStyle(fontWeight: FontWeight.w700)),
+                    subtitle: const Text('فتح ومتابعة تذاكر الدعم الفني', style: TextStyle(fontSize: 12)),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SupportTicketsScreen())),
+                  ),
+                ),
+                const SizedBox(height: 10),
                 ElevatedButton.icon(
                   onPressed: () async {
                     await auth.logout();
