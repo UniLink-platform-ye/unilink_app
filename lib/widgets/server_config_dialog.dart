@@ -45,50 +45,52 @@ void showServerConfigDialog(BuildContext context) {
 
           return AlertDialog(
             title: const Text('إعدادات السيرفر'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const Text(
-                  'أدخل عنوان IP السيرفر (مثال: 192.168.1.20 أو 10.0.2.2 للمحاكي)',
-                  style: TextStyle(fontSize: 12, color: Colors.grey),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: ctrl,
-                  decoration: const InputDecoration(
-                    labelText: 'IP السيرفر',
-                    hintText: '192.168.1.x',
-                    prefixIcon: Icon(Icons.wifi_rounded),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Text(
+                    'أدخل عنوان IP السيرفر (مثال: 192.168.1.20 أو 10.0.2.2 للمحاكي)',
+                    style: TextStyle(fontSize: 12, color: Colors.grey),
                   ),
-                  textDirection: TextDirection.ltr,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                ),
-                const SizedBox(height: 16),
-                OutlinedButton.icon(
-                  onPressed: isTesting ? null : testConnection,
-                  icon: isTesting 
-                      ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                      : const Icon(Icons.sensors),
-                  label: Text(isTesting ? 'جاري الفحص...' : 'فحص الاتصال'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: isSuccess ? Colors.green : const Color(0xFF2563EB),
-                    side: BorderSide(color: isSuccess ? Colors.green : const Color(0xFF2563EB)),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: ctrl,
+                    decoration: const InputDecoration(
+                      labelText: 'IP السيرفر',
+                      hintText: '192.168.1.x',
+                      prefixIcon: Icon(Icons.wifi_rounded),
+                    ),
+                    textDirection: TextDirection.ltr,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
                   ),
-                ),
-                if (testResult != null) ...[
-                  const SizedBox(height: 8),
-                  Text(
-                    testResult!,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: isSuccess ? Colors.green : Colors.red,
-                      fontWeight: FontWeight.bold,
+                  const SizedBox(height: 16),
+                  OutlinedButton.icon(
+                    onPressed: isTesting ? null : testConnection,
+                    icon: isTesting 
+                        ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                        : const Icon(Icons.sensors),
+                    label: Text(isTesting ? 'جاري الفحص...' : 'فحص الاتصال'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: isSuccess ? Colors.green : const Color(0xFF2563EB),
+                      side: BorderSide(color: isSuccess ? Colors.green : const Color(0xFF2563EB)),
                     ),
                   ),
+                  if (testResult != null) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      testResult!,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isSuccess ? Colors.green : Colors.red,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
                 ],
-              ],
+              ),
             ),
             actions: [
               TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء')),
