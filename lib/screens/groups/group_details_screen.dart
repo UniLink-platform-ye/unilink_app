@@ -48,7 +48,9 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> with SingleTick
 
   Future<void> _loadDetails() async {
     setState(() => _loadingDetails = true);
-    final r = await ApiService.get(ApiConfig.host + '/group_details.php', params: {'group_id': '$groupId'});
+    // نستنتج رابط group_details.php من أي endpoint موجود (مثلاً groups)
+    final base = ApiConfig.groups.replaceFirst('groups.php', 'group_details.php');
+    final r = await ApiService.get(base, params: {'group_id': '$groupId'});
     if (!mounted) return;
     setState(() {
       _loadingDetails = false;
@@ -182,7 +184,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> with SingleTick
         const Text('الأعضاء', style: TextStyle(fontWeight: FontWeight.w800)),
         const SizedBox(height: 8),
         FutureBuilder<Map<String, dynamic>>(
-          future: ApiService.get(ApiConfig.host + '/group_details.php', params: {'group_id': '$groupId'}),
+          future: ApiService.get(ApiConfig.groups.replaceFirst('groups.php', 'group_details.php'), params: {'group_id': '$groupId'}),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Padding(
