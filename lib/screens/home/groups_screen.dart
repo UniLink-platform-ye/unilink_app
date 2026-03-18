@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
 import '../../config/api_config.dart';
+import '../groups/group_details_screen.dart';
 
 class GroupsScreen extends StatefulWidget {
   const GroupsScreen({super.key});
@@ -81,6 +82,12 @@ class _GroupList extends StatelessWidget {
               trailing: isMember
                   ? OutlinedButton(onPressed: () => onLeave((g['group_id'] as int)), child: const Text('مغادرة', style: TextStyle(fontSize: 12)))
                   : ElevatedButton(onPressed: () => onJoin((g['group_id'] as int)), style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6)), child: const Text('انضمام', style: TextStyle(fontSize: 12))),
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => GroupDetailsScreen(group: g),
+                ),
+              ),
             ),
           );
         },

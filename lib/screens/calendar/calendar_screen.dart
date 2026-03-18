@@ -82,10 +82,58 @@ class _CalendarScreenState extends State<CalendarScreen> {
                         leading: Icon(icon, color: const Color(0xFF2563EB)),
                         title: Text(e['title'] ?? ''),
                         subtitle: Text(subtitleParts.join(' • '), maxLines: 2, overflow: TextOverflow.ellipsis),
+                        onTap: () => _showEventDetailsDialog(e),
                       );
                     },
                   ),
                 ),
+    );
+  }
+
+  void _showEventDetailsDialog(Map<String, dynamic> e) {
+    final typeLabels = {
+      'lecture': 'محاضرة',
+      'exam': 'اختبار',
+      'meeting': 'اجتماع',
+      'task': 'مهمة',
+      'other': 'أخرى',
+    };
+    showDialog<void>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text(e['title'] ?? ''),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (e['event_type'] != null)
+              Text('النوع: ${typeLabels[e['event_type']] ?? e['event_type']}', style: const TextStyle(fontWeight: FontWeight.w600)),
+            const SizedBox(height: 6),
+            Text('من: ${e['start_at'] ?? ''}'),
+            if (e['end_at'] != null) Text('إلى: ${e['end_at']}'),
+            if ((e['location'] ?? '').toString().isNotEmpty) ...[
+              const SizedBox(height: 6),
+              Text('الموقع: ${e['location']}'),
+            ],
+            if ((e['course_name'] ?? '').toString().isNotEmpty) ...[
+              const SizedBox(height: 6),
+              Text('المقرر: ${e['course_name']}'),
+            ],
+            if ((e['group_name'] ?? '').toString().isNotEmpty) ...[
+              const SizedBox(height: 6),
+              Text('المجموعة: ${e['group_name']}'),
+            ],
+            if ((e['description'] ?? '').toString().isNotEmpty) ...[
+              const SizedBox(height: 10),
+              const Text('الوصف:', style: TextStyle(fontWeight: FontWeight.w600)),
+              Text(e['description'] ?? ''),
+            ],
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('إغلاق')),
+        ],
+      ),
     );
   }
 }
@@ -128,6 +176,29 @@ class _EventFormScreenState extends State<EventFormScreen> {
     _startCtrl.dispose();
     _endCtrl.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickDateTime(TextEditingController controller) async {
+    final now = DateTime.now();
+    final date = await showDatePicker(
+      context: context,
+      initialDate: now,
+      firstDate: DateTime(now.year - 1),
+      lastDate: DateTime(now.year + 2),
+    );
+    if (date == null) return;
+    final time = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(now),
+    );
+    if (time == null) return;
+    final dt = DateTime(date.year, date.month, date.day, time.hour, time.minute);
+    // صيغة متوافقة مع MySQL: yyyy-MM-dd HH:mm:ss
+    controller.text = '${dt.year.toString().padLeft(4, '0')}-'
+        '${dt.month.toString().padLeft(2, '0')}-'
+        '${dt.day.toString().padLeft(2, '0')} '
+        '${time.hour.toString().padLeft(2, '0')}:'
+        '${time.minute.toString().padLeft(2, '0')}:00';
   }
 
   Future<void> _save() async {
@@ -182,16 +253,22 @@ class _EventFormScreenState extends State<EventFormScreen> {
           const SizedBox(height: 10),
           TextField(
             controller: _startCtrl,
+            readOnly: true,
+            onTap: () => _pickDateTime(_startCtrl),
             decoration: const InputDecoration(
-              labelText: 'بداية الحدث (YYYY-MM-DD HH:MM)',
+              labelText: 'بداية الحدث',
+              hintText: 'اختر التاريخ والوقت',
               border: OutlineInputBorder(),
             ),
           ),
           const SizedBox(height: 10),
           TextField(
             controller: _endCtrl,
+            readOnly: true,
+            onTap: () => _pickDateTime(_endCtrl),
             decoration: const InputDecoration(
               labelText: 'نهاية الحدث (اختياري)',
+              hintText: 'اختر التاريخ والوقت',
               border: OutlineInputBorder(),
             ),
           ),
