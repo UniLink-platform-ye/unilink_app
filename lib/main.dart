@@ -28,13 +28,17 @@ class UniLinkApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider.value(value: themeProvider),
       ],
-      child: MaterialApp(
-        title: 'Secure Uni Network',
-        debugShowCheckedModeBanner: false,
-        theme: _buildTheme(Brightness.light),
-        darkTheme: _buildTheme(Brightness.dark),
-        themeMode: context.watch<ThemeProvider>().themeMode,
-        home: const SplashScreen(),
+      child: Consumer<ThemeProvider>(
+        builder: (context, currentThemeProvider, child) {
+          return MaterialApp(
+            title: 'Secure Uni Network',
+            debugShowCheckedModeBanner: false,
+            theme: _buildTheme(Brightness.light),
+            darkTheme: _buildTheme(Brightness.dark),
+            themeMode: currentThemeProvider.themeMode,
+            home: const SplashScreen(),
+          );
+        },
       ),
     );
   }
