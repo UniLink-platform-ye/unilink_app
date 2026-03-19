@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/theme_provider.dart';
 import '../../services/api_service.dart';
 import '../file_center/file_center_screen.dart';
 import '../calendar/calendar_screen.dart';
@@ -26,6 +27,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
+    final themeProvider = context.watch<ThemeProvider>();
     if (_user == null) return const Center(child: CircularProgressIndicator());
     return Scaffold(
       body: CustomScrollView(
@@ -71,6 +73,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 if (_user!['department'] != null && _user!['department'].toString().isNotEmpty)
                   _InfoCard(icon: Icons.school_outlined, label: 'القسم', value: _user!['department']),
                 const SizedBox(height: 24),
+                Card(
+                  child: ListTile(
+                    leading: Icon(
+                      themeProvider.isDark ? Icons.dark_mode_outlined : Icons.light_mode_outlined,
+                      color: const Color(0xFF2563EB),
+                    ),
+                    title: const Text('وضع التطبيق', style: TextStyle(fontWeight: FontWeight.w700)),
+                    subtitle: Text(themeProvider.isDark ? 'داكن' : 'فاتح', style: const TextStyle(fontSize: 12)),
+                    trailing: Switch(
+                      value: themeProvider.isDark,
+                      onChanged: (_) => themeProvider.toggle(),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
                 Card(
                   child: ListTile(
                     leading: const Icon(Icons.folder_open, color: Color(0xFF2563EB)),

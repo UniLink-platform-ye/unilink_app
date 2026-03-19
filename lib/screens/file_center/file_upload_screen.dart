@@ -7,7 +7,8 @@ import '../../config/api_config.dart';
 import '../../services/api_service.dart';
 
 class FileUploadScreen extends StatefulWidget {
-  const FileUploadScreen({super.key});
+  final int? initialGroupId;
+  const FileUploadScreen({super.key, this.initialGroupId});
 
   @override
   State<FileUploadScreen> createState() => _FileUploadScreenState();
@@ -20,12 +21,19 @@ class _FileUploadScreenState extends State<FileUploadScreen> {
   String _category = 'lecture';
   final _titleCtrl = TextEditingController();
   final _descCtrl = TextEditingController();
+  int? _groupId;
 
   @override
   void dispose() {
     _titleCtrl.dispose();
     _descCtrl.dispose();
     super.dispose();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _groupId = widget.initialGroupId;
   }
 
   Future<void> _pickFile() async {
@@ -44,6 +52,7 @@ class _FileUploadScreenState extends State<FileUploadScreen> {
         'category': _category,
         if (_titleCtrl.text.trim().isNotEmpty) 'title': _titleCtrl.text.trim(),
         if (_descCtrl.text.trim().isNotEmpty) 'description': _descCtrl.text.trim(),
+        if (_groupId != null) 'group_id': '$_groupId',
       };
       final r = await ApiService.postMultipart(
         ApiConfig.files,
