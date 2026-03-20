@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../providers/auth_provider.dart';
 import '../../services/api_service.dart';
 import '../../config/api_config.dart';
 import '../groups/group_details_screen.dart';
+import '../groups/create_group_screen.dart';
 
 class GroupsScreen extends StatefulWidget {
   const GroupsScreen({super.key});
@@ -39,11 +42,27 @@ class _GroupsScreenState extends State<GroupsScreen> with SingleTickerProviderSt
 
   @override
   Widget build(BuildContext context) {
+    final role = context.watch<AuthProvider>().user?['role'];
+    final canCreate = role == 'admin' || role == 'supervisor' || role == 'professor';
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('المجموعات الأكاديمية'),
         bottom: TabBar(controller: _tabs, tabs: const [Tab(text: 'الكل'), Tab(text: 'مجموعاتي')]),
       ),
+      floatingActionButton: canCreate
+          ? FloatingActionButton.extended(
+              onPressed: () async {
+                final created = await Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const CreateGroupScreen()),
+                );
+                if (created == true && mounted) _load();
+              },
+              icon: const Icon(Icons.add),
+              label: const Text('مجموعة جديدة'),
+            )
+          : null,
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : TabBarView(controller: _tabs, children: [
