@@ -6,6 +6,7 @@ import '../../services/api_service.dart';
 import '../../config/api_config.dart';
 import 'messages_screen.dart';
 import '../support/support_tickets_screen.dart';
+import 'comments_screen.dart';
 
 class FeedScreen extends StatefulWidget {
   const FeedScreen({super.key});
@@ -126,7 +127,7 @@ class _FeedScreenState extends State<FeedScreen> {
                       return const SizedBox.shrink();
                     }
                     final p = _posts[i] as Map<String, dynamic>;
-                    return _PostCard(post: p);
+                    return _PostCard(post: p, onRefresh: () => _load(refresh: true));
                   },
                   childCount: _posts.length + 1,
                 ),
@@ -140,7 +141,8 @@ class _FeedScreenState extends State<FeedScreen> {
 
 class _PostCard extends StatelessWidget {
   final Map<String, dynamic> post;
-  const _PostCard({required this.post});
+  final VoidCallback onRefresh;
+  const _PostCard({required this.post, required this.onRefresh});
 
   @override
   Widget build(BuildContext context) {
@@ -196,7 +198,19 @@ class _PostCard extends StatelessWidget {
                     builder: (_) => ChatScreen(userId: postUserId, name: post['full_name'] as String? ?? ''),
                   )),
                 ),
-              ] else
+              ] else if (currentUserId == postUserId)
+                PopupMenuButton<String>(
+                  icon: const Icon(Icons.more_vert),
+                  itemBuilder: (_) => [
+                    const PopupMenuItem(value: 'edit', child: Text('تعديل')),
+                    const PopupMenuItem(value: 'delete', child: Text('حذف', style: TextStyle(color: Colors.red))),
+                  ],
+                  onSelected: (v) {
+                    if (v == 'delete') _deletePost(context);
+                    if (v == 'edit') _editPost(context);
+                  },
+                )
+              else
                 Text(typeIcons[type] ?? '📝', style: const TextStyle(fontSize: 18)),
             ]),
             // Group tag
@@ -212,6 +226,19 @@ class _PostCard extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.only(top: 10),
               child: Text(post['content'] ?? '', style: const TextStyle(fontSize: 14, height: 1.6)),
+            ),
+            const Divider(),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                TextButton.icon(
+                  onPressed: () {
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => CommentsScreen(post: post)));
+                  },
+                  icon: const Icon(Icons.comment_outlined, size: 20),
+                  label: Text('التعليقات (${post['comments_count'] ?? 0})', style: const TextStyle(color: Colors.grey)),
+                ),
+              ],
             ),
           ],
         ),
@@ -252,5 +279,59 @@ class _PostCard extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Future<void> _deletePost(BuildContext context) async {
+    final sure = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('تأكيد الحذف'),
+        content: const Text('هل أنت متأكد من رغبتك في حذف هذا المنشور؟ لا يمكن التراجع عن هذا الإجراء.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('إلغاء')),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('حذف', style: TextStyle(color: Colors.red))),
+        ],
+      )
+    );
+    if (sure != true) return;
+    
+    final r = await ApiService.delete(ApiConfig.posts, params: {'id': post['post_id'].toString()});
+    if (context.mounted) {
+      if (r['success'] == true) {
+        onRefresh();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(r['error']?.toString() ?? 'حدث خطأ')));
+      }
+    }
+  }
+
+  Future<void> _editPost(BuildContext context) async {
+    final ctrl = TextEditingController(text: post['content'] ?? '');
+    final newContent = await showDialog<String>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('تعديل المنشور'),
+        content: TextField(
+          controller: ctrl,
+          maxLines: 4,
+          decoration: const InputDecoration(border: OutlineInputBorder(), hintText: 'محتوى المنشور...'),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, null), child: const Text('إلغاء')),
+          ElevatedButton(onPressed: () => Navigator.pop(context, ctrl.text), child: const Text('حفظ')),
+        ],
+      )
+    );
+
+    if (newContent == null || newContent.trim().isEmpty || newContent == post['content']) return;
+
+    final r = await ApiService.post(ApiConfig.posts, {'action': 'edit', '_method': 'PUT', 'post_id': post['post_id'], 'content': newContent.trim()});
+    if (context.mounted) {
+      if (r['success'] == true) {
+        onRefresh();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(r['error']?.toString() ?? 'حدث خطأ في التعديل')));
+      }
+    }
   }
 }

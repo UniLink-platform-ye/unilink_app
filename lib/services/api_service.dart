@@ -161,6 +161,33 @@ class ApiService {
     }
   }
 
+  // ─── PUT ───────────────────────────────────────────────────
+  static Future<Map<String, dynamic>> put(
+    String url,
+    Map<String, dynamic> body,
+  ) async {
+    _log('PUT', url, body);
+    final stopwatch = Stopwatch()..start();
+    try {
+      final res = await http.put(
+        Uri.parse(url),
+        headers: await _headers(),
+        body: jsonEncode(body),
+      );
+      stopwatch.stop();
+      _log('PUT', '${res.statusCode} $url (${stopwatch.elapsedMilliseconds}ms)');
+      if (res.statusCode >= 400) _log('PUT', 'BODY', res.body.length > 500 ? '${res.body.substring(0, 500)}...' : res.body);
+      final out = _parse(res);
+      if (out.containsKey('error') || (out['success'] == false)) _log('PUT', 'RESPONSE', out);
+      return out;
+    } catch (e, st) {
+      stopwatch.stop();
+      _log('PUT', 'ERROR', e);
+      _log('PUT', 'STACK', st.toString().split('\n').take(5).join('\n'));
+      rethrow;
+    }
+  }
+
   // ─── DELETE ───────────────────────────────────────────────
   static Future<Map<String, dynamic>> delete(
     String url, {

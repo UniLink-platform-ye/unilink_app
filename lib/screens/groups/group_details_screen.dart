@@ -6,6 +6,7 @@ import '../../config/api_config.dart';
 import '../../services/api_service.dart';
 import '../calendar/calendar_screen.dart';
 import '../file_center/file_upload_screen.dart';
+import '../home/comments_screen.dart';
 
 class GroupDetailsScreen extends StatefulWidget {
   final Map<String, dynamic> group;
@@ -321,29 +322,52 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> with SingleTick
           
           return Card(
             margin: const EdgeInsets.only(bottom: 8),
-            child: ListTile(
-              title: Text(p['content'] ?? ''),
-              subtitle: Text(p['full_name'] ?? ''),
-              trailing: isMine ? null : PopupMenuButton<String>(
-                icon: const Icon(Icons.more_vert),
-                itemBuilder: (_) => [
-                  const PopupMenuItem(value: 'report', child: Text('الإبلاغ عن المنشور')),
-                ],
-                onSelected: (v) async {
-                  if (v == 'report') {
-                    final reason = await _showReportDialog(context);
-                    if (reason != null && mounted) {
-                      await ApiService.post(ApiConfig.reports, {
-                        'post_id': p['post_id'],
-                        'reason': reason,
-                      });
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم إرسال البلاغ للمراجعة')));
-                      }
-                    }
-                  }
-                },
-              ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ListTile(
+                  title: Text(p['content'] ?? ''),
+                  subtitle: Text(p['full_name'] ?? ''),
+                  trailing: isMine
+                      ? PopupMenuButton<String>(
+                          icon: const Icon(Icons.more_vert),
+                          itemBuilder: (_) => [
+                            const PopupMenuItem(value: 'edit', child: Text('تعديل')),
+                            const PopupMenuItem(value: 'delete', child: Text('حذف', style: TextStyle(color: Colors.red))),
+                          ],
+                          onSelected: (v) {
+                            if (v == 'delete') _deletePost(p);
+                            if (v == 'edit') _editPost(p);
+                          },
+                        )
+                      : PopupMenuButton<String>(
+                          icon: const Icon(Icons.more_vert),
+                          itemBuilder: (_) => [
+                            const PopupMenuItem(value: 'report', child: Text('الإبلاغ عن المنشور')),
+                          ],
+                          onSelected: (v) async {
+                            if (v == 'report') {
+                              final reason = await _showReportDialog(context);
+                              if (reason != null && mounted) {
+                                await ApiService.post(ApiConfig.reports, {'post_id': p['post_id'], 'reason': reason});
+                                if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم إرسال البلاغ للمراجعة')));
+                              }
+                            }
+                          },
+                        ),
+                ),
+                const Divider(height: 1),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    TextButton.icon(
+                      onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => CommentsScreen(post: p))),
+                      icon: const Icon(Icons.comment_outlined, size: 20),
+                      label: Text('التعليقات (${p['comments_count'] ?? 0})', style: const TextStyle(color: Colors.grey)),
+                    ),
+                  ],
+                ),
+              ],
             ),
           );
         },
@@ -458,6 +482,50 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> with SingleTick
         ],
       ),
     );
+  }
+
+  Future<void> _deletePost(Map<String, dynamic> post) async {
+    final sure = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('تأكيد الحذف'),
+        content: const Text('هل أنت متأكد من رغبتك في حذف هذا المنشور؟'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('إلغاء')),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('حذف', style: TextStyle(color: Colors.red))),
+        ],
+      )
+    );
+    if (sure != true) return;
+    
+    final r = await ApiService.delete(ApiConfig.posts, params: {'id': post['post_id'].toString()});
+    if (context.mounted) {
+      if (r['success'] == true) _loadPosts();
+      else ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(r['error']?.toString() ?? 'حدث خطأ')));
+    }
+  }
+
+  Future<void> _editPost(Map<String, dynamic> post) async {
+    final ctrl = TextEditingController(text: post['content'] ?? '');
+    final newContent = await showDialog<String>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('تعديل المنشور'),
+        content: TextField(controller: ctrl, maxLines: 4, decoration: const InputDecoration(border: OutlineInputBorder())),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, null), child: const Text('إلغاء')),
+          ElevatedButton(onPressed: () => Navigator.pop(context, ctrl.text), child: const Text('حفظ')),
+        ],
+      )
+    );
+
+    if (newContent == null || newContent.trim().isEmpty || newContent == post['content']) return;
+
+    final r = await ApiService.post(ApiConfig.posts, {'action': 'edit', '_method': 'PUT', 'post_id': post['post_id'], 'content': newContent.trim()});
+    if (context.mounted) {
+      if (r['success'] == true) _loadPosts();
+      else ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(r['error']?.toString() ?? 'حدث خطأ في التعديل')));
+    }
   }
 
   Future<String?> _showReportDialog(BuildContext context) async {
