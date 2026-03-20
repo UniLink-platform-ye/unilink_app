@@ -191,12 +191,14 @@ class ApiService {
   // ─── DELETE ───────────────────────────────────────────────
   static Future<Map<String, dynamic>> delete(
     String url, {
+    Map<String, String>? params,
     Map<String, dynamic>? body,
   }) async {
-    _log('DELETE', url, body);
+    final uri = Uri.parse(url).replace(queryParameters: params);
+    _log('DELETE', uri.toString(), body);
     final stopwatch = Stopwatch()..start();
     try {
-      final req = http.Request('DELETE', Uri.parse(url));
+      final req = http.Request('DELETE', uri);
       req.headers.addAll(await _headers());
       if (body != null) req.body = jsonEncode(body);
       final res = await req.send();
