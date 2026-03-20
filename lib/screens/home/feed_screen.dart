@@ -56,7 +56,6 @@ class _FeedScreenState extends State<FeedScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF1F5F9),
       appBar: AppBar(
         title: const Text('UniLink — الخلاصة'),
         actions: [
@@ -88,7 +87,7 @@ class _FeedScreenState extends State<FeedScreen> {
                           decoration: InputDecoration(
                             hintText: 'شارك شيئاً مع زملائك...',
                             border: OutlineInputBorder(borderRadius: BorderRadius.circular(24), borderSide: BorderSide.none),
-                            filled: true, fillColor: const Color(0xFFF1F5F9),
+                            filled: true,
                             contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                           ),
                           maxLines: null,
