@@ -90,7 +90,7 @@ class ApiService {
       stopwatch.stop();
       _log('GET', 'ERROR', e);
       _log('GET', 'STACK', st.toString().split('\n').take(5).join('\n'));
-      rethrow;
+      return {'success': false, 'error': 'تعذر الاتصال بالخادم. يرجى التحقق من الشبكة.'};
     }
   }
 
@@ -130,7 +130,7 @@ class ApiService {
       stopwatch.stop();
       _log('MP_POST', 'ERROR', e);
       _log('MP_POST', 'STACK', st.toString().split('\n').take(5).join('\n'));
-      rethrow;
+      return {'success': false, 'error': 'تعذر رفع الملف. يرجى التحقق من الشبكة.'};
     }
   }
 
@@ -157,7 +157,7 @@ class ApiService {
       stopwatch.stop();
       _log('POST', 'ERROR', e);
       _log('POST', 'STACK', st.toString().split('\n').take(5).join('\n'));
-      rethrow;
+      return {'success': false, 'error': 'تعذر الاتصال بالخادم. يرجى التحقق من الشبكة.'};
     }
   }
 
@@ -184,7 +184,7 @@ class ApiService {
       stopwatch.stop();
       _log('PUT', 'ERROR', e);
       _log('PUT', 'STACK', st.toString().split('\n').take(5).join('\n'));
-      rethrow;
+      return {'success': false, 'error': 'تعذر الاتصال بالخادم. يرجى التحقق من الشبكة.'};
     }
   }
 
@@ -215,7 +215,7 @@ class ApiService {
       stopwatch.stop();
       _log('DELETE', 'ERROR', e);
       _log('DELETE', 'STACK', st.toString().split('\n').take(5).join('\n'));
-      rethrow;
+      return {'success': false, 'error': 'تعذر الاتصال بالخادم. يرجى التحقق من الشبكة.'};
     }
   }
 }

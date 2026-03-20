@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../providers/auth_provider.dart';
 import '../../config/api_config.dart';
@@ -388,12 +390,35 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> with SingleTick
         itemBuilder: (_, i) {
           final f = _files[i] as Map<String, dynamic>;
           final name = (f['title'] as String?)?.isNotEmpty == true ? f['title'] as String : (f['original_name'] as String? ?? 'ملف');
+          final url = f['download_url'] as String?;
+          
           return Card(
             margin: const EdgeInsets.only(bottom: 8),
             child: ListTile(
               leading: const Icon(Icons.insert_drive_file_outlined),
               title: Text(name),
               subtitle: Text('رفع بواسطة: ${f['uploader_name'] ?? ''}'),
+              trailing: IconButton(
+                icon: const Icon(Icons.download_rounded, color: Colors.blue),
+                onPressed: () async {
+                  if (url != null && url.isNotEmpty) {
+                    final uri = Uri.tryParse(url);
+                    if (uri != null && await canLaunchUrl(uri)) {
+                      await launchUrl(uri, mode: LaunchMode.externalApplication);
+                    } else if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('فشل فتح رابط التحميل')));
+                    }
+                  }
+                },
+              ),
+              onTap: () async {
+                if (url != null && url.isNotEmpty) {
+                  final uri = Uri.tryParse(url);
+                  if (uri != null && await canLaunchUrl(uri)) {
+                    await launchUrl(uri, mode: LaunchMode.externalApplication);
+                  }
+                }
+              },
             ),
           );
         },
