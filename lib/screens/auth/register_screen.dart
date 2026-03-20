@@ -84,7 +84,25 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 const SizedBox(height: 12),
                 TextFormField(controller: _emailCtrl, keyboardType: TextInputType.emailAddress, textDirection: TextDirection.ltr, decoration: const InputDecoration(labelText: 'البريد الجامعي *', prefixIcon: Icon(Icons.email_outlined)), validator: (v) => !(v?.contains('@')??false)?'بريد غير صالح':null),
                 const SizedBox(height: 12),
-                TextFormField(controller: _idCtrl, decoration: const InputDecoration(labelText: 'الرقم الأكاديمي', prefixIcon: Icon(Icons.badge_outlined))),
+                DropdownButtonFormField<String>(
+                  value: _role,
+                  decoration: const InputDecoration(labelText: 'الدور', prefixIcon: Icon(Icons.work_outline)),
+                  items: _roles.entries.map((e) => DropdownMenuItem(value: e.key, child: Text(e.value))).toList(),
+                  onChanged: (v) => setState(() {
+                    _role = v!;
+                    // مسح الرقم عند تغيير الدور لتجنب إرسال بيانات خاطئة
+                    _idCtrl.clear();
+                  }),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _idCtrl,
+                  decoration: InputDecoration(
+                    labelText: _role == 'student' ? 'الرقم الجامعي *' : 'الرقم الوظيفي *',
+                    prefixIcon: Icon(_role == 'student' ? Icons.badge_outlined : Icons.work_history_outlined),
+                  ),
+                  validator: (v) => (v?.isEmpty ?? true) ? 'هذا الحقل مطلوب' : null,
+                ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
                   value: _dept,
@@ -93,13 +111,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   onChanged: (v) => setState(() => _dept = v!),
                 ),
                 const SizedBox(height: 12),
-                DropdownButtonFormField<String>(
-                  value: _role,
-                  decoration: const InputDecoration(labelText: 'الدور', prefixIcon: Icon(Icons.work_outline)),
-                  items: _roles.entries.map((e) => DropdownMenuItem(value: e.key, child: Text(e.value))).toList(),
-                  onChanged: (v) => setState(() => _role = v!),
-                ),
-                const SizedBox(height: 12),
+
                 TextFormField(controller: _passCtrl, obscureText: _obscure, textDirection: TextDirection.ltr, decoration: InputDecoration(labelText: 'كلمة المرور *', prefixIcon: const Icon(Icons.lock_outline), suffixIcon: IconButton(icon: Icon(_obscure?Icons.visibility_outlined:Icons.visibility_off_outlined), onPressed: ()=>setState(()=>_obscure=!_obscure))), validator: (v) => (v?.length??0)<8?'8 أحرف على الأقل':null),
                 const SizedBox(height: 24),
                 ElevatedButton(
