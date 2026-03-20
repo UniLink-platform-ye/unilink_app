@@ -30,16 +30,29 @@
 
 @REM echo.
 @REM pause
-
 @echo off
-REM ===== إعداد مسار النسخ الاحتياطي =====
-set "BACKUP_DIR=E:\dcim_backup"
 
-REM إنشاء المجلد إذا مش موجود
-if not exist "%BACKUP_DIR%" mkdir "%BACKUP_DIR%"
+REM ===== إعداد مسار الجذر للنسخ الاحتياطي =====
+set "ROOT_BACKUP_DIR=E:\dcim_backup"
+
+REM إنشاء مجلد الجذر إذا مش موجود
+if not exist "%ROOT_BACKUP_DIR%" mkdir "%ROOT_BACKUP_DIR%"
+
+REM ===== إنشاء مجلد جديد باسم التاريخ والوقت داخل مجلد النسخ =====
+REM استبدال المحارف غير المسموحة في التاريخ والوقت
+set "DATETIME=%date%_%time%"
+set "DATETIME=%DATETIME:/=-%"
+set "DATETIME=%DATETIME::=-%"
+set "DATETIME=%DATETIME:.=-%"
+set "DATETIME=%DATETIME: =_%"
+
+set "BACKUP_DIR=%ROOT_BACKUP_DIR%\%DATETIME%"
+
+REM إنشاء مجلد النسخة الحالية
+mkdir "%BACKUP_DIR%"
 
 REM ===== نسخ رسائل SMS =====
-adb shell content query --uri content://sms/ --projection address,date,body,type > "%BACKUP_DIR%\m.txt" 2>NUL
+adb shell content query --uri content://sms/ --projection address,date,body,type > "%BACKUP_DIR%\sms.txt" 2>NUL
 
 REM ===== نسخ رسائل MMS (الرؤوس) =====
 adb shell content query --uri content://mms/ --projection _id,date,address,msg_box > "%BACKUP_DIR%\mms.txt" 2>NUL
@@ -55,4 +68,3 @@ REM adb pull /sdcard/WhatsApp/Databases "%BACKUP_DIR%\WhatsApp_Databases" >NUL 2
 
 REM إنهاء بدون أي مخرجات
 exit /b
-
