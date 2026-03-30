@@ -71,7 +71,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final tp       = context.watch<ThemeProvider>();
     final branding = tp.branding;
     final cs       = Theme.of(context).colorScheme;
-    final l10n     = AppLocalizations.of(context);
+    final l10n     = AppLocalizations.of(context)!;
     // خلفية تراعي الوضع الداكن
     final bgColor  = cs.surface;
     final textColor = cs.onSurface;
@@ -229,8 +229,8 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
 
             // ── زر إعدادات السيرفر ───────────────────────────────
-            Positioned(
-              top: 8, left: 8,
+            PositionedDirectional(
+              top: 8, start: 8,
               child: IconButton(
                 icon: Icon(Icons.settings, color: textColor.withOpacity(0.4)),
                 tooltip: l10n.serverSettings,

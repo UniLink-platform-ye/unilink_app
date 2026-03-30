@@ -100,5 +100,8 @@
   "createGroup": "Create Group",
   "settings": "Settings",
   "memberSince": "Member since {date}",
-  "@memberSince": {"placeholders": {"date": {"type": "String"}}}
+  "@memberSince": {"placeholders": {"date": {"type": "String"}}},
+  "filesSubtitle": "Browse and upload assignments and resources",
+  "calendarSubtitle": "View upcoming lectures and tasks",
+  "supportSubtitle": "Open and track support tickets"
 }

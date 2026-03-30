@@ -40,7 +40,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final tp         = context.watch<ThemeProvider>();
     final lp         = context.watch<LocaleProvider>();
     final cs         = Theme.of(context).colorScheme;
-    final l10n       = AppLocalizations.of(context);
+    final l10n       = AppLocalizations.of(context)!;
 
     if (_user == null) {
       return Scaffold(
@@ -49,8 +49,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
 
     final roleLabels = {
-      'admin':      'مدير النظام',
-      'supervisor': 'مشرف',
+      'admin':      'Admin',
+      'supervisor': 'Supervisor',
       'professor':  l10n.professorRole,
       'student':    l10n.studentRole,
     };
@@ -163,7 +163,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   child: ListTile(
                     leading: Icon(Icons.folder_open, color: cs.primary),
                     title: Text(l10n.files, style: const TextStyle(fontWeight: FontWeight.w700)),
-                    subtitle: const Text('تصفح ورفع المحاضرات والواجبات والمراجع', style: TextStyle(fontSize: 12)),
+                    subtitle: Text(l10n.filesSubtitle, style: const TextStyle(fontSize: 12)),
                     trailing: const Icon(Icons.chevron_right),
                     onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FileCenterScreen())),
                   ),
@@ -175,7 +175,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   child: ListTile(
                     leading: Icon(Icons.calendar_today_outlined, color: cs.primary),
                     title: Text(l10n.calendar, style: const TextStyle(fontWeight: FontWeight.w700)),
-                    subtitle: const Text('عرض المحاضرات والاختبارات والمهام القادمة', style: TextStyle(fontSize: 12)),
+                    subtitle: Text(l10n.calendarSubtitle, style: const TextStyle(fontSize: 12)),
                     trailing: const Icon(Icons.chevron_right),
                     onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CalendarScreen())),
                   ),
@@ -187,7 +187,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   child: ListTile(
                     leading: Icon(Icons.support_agent_outlined, color: cs.primary),
                     title: Text(l10n.support, style: const TextStyle(fontWeight: FontWeight.w700)),
-                    subtitle: const Text('فتح ومتابعة تذاكر الدعم الفني', style: TextStyle(fontSize: 12)),
+                    subtitle: Text(l10n.supportSubtitle, style: const TextStyle(fontSize: 12)),
                     trailing: const Icon(Icons.chevron_right),
                     onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SupportTicketsScreen())),
                   ),

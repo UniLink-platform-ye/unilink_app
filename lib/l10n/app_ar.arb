@@ -100,5 +100,8 @@
   "createGroup": "إنشاء مجموعة",
   "settings": "الإعدادات",
   "memberSince": "عضو منذ {date}",
-  "@memberSince": {"placeholders": {"date": {"type": "String"}}}
+  "@memberSince": {"placeholders": {"date": {"type": "String"}}},
+  "filesSubtitle": "تصفح ورفع المحاضرات والواجبات والمراجع",
+  "calendarSubtitle": "عرض المحاضرات والاختبارات والمهام القادمة",
+  "supportSubtitle": "فتح ومتابعة تذاكر الدعم الفني"
 }

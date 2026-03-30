@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import '../../services/api_service.dart';
 import '../../config/api_config.dart';
 import 'feed_screen.dart';
@@ -53,9 +54,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    
     return Scaffold(
       appBar: AppBar(
-        title: const Text('UniLink'),
+        title: Text(l10n.appName),
         actions: [
           IconButton(
             icon: const Icon(Icons.search),
@@ -70,19 +73,19 @@ class _HomeScreenState extends State<HomeScreen> {
           setState(() { _currentIndex = i; if (i == 3) _unreadNotif = 0; });
         },
         destinations: [
-          const NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'الرئيسية'),
-          const NavigationDestination(icon: Icon(Icons.groups_outlined), selectedIcon: Icon(Icons.groups), label: 'مجموعات'),
+          NavigationDestination(icon: const Icon(Icons.home_outlined), selectedIcon: const Icon(Icons.home), label: l10n.home),
+          NavigationDestination(icon: const Icon(Icons.groups_outlined), selectedIcon: const Icon(Icons.groups), label: l10n.groups),
           NavigationDestination(
             icon: Badge(isLabelVisible: _unreadMsg > 0, label: Text('$_unreadMsg'), child: const Icon(Icons.message_outlined)),
             selectedIcon: const Icon(Icons.message),
-            label: 'رسائل',
+            label: l10n.messages,
           ),
           NavigationDestination(
             icon: Badge(isLabelVisible: _unreadNotif > 0, label: Text('$_unreadNotif'), child: const Icon(Icons.notifications_outlined)),
             selectedIcon: const Icon(Icons.notifications),
-            label: 'إشعارات',
+            label: l10n.notifications,
           ),
-          const NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: 'ملفي'),
+          NavigationDestination(icon: const Icon(Icons.person_outline), selectedIcon: const Icon(Icons.person), label: l10n.profile),
         ],
       ),
     );

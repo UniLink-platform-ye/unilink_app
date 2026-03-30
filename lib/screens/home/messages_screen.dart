@@ -181,7 +181,7 @@ class _ChatScreenState extends State<ChatScreen> {
               final senderId = m['sender_id'] as int?;
               final isMine = currentUserId != null && senderId == currentUserId;
               return Align(
-                alignment: isMine ? Alignment.centerRight : Alignment.centerLeft,
+                alignment: isMine ? AlignmentDirectional.centerEnd : AlignmentDirectional.centerStart,
                 child: Container(
                   margin: const EdgeInsets.only(bottom: 8),
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -201,7 +201,7 @@ class _ChatScreenState extends State<ChatScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: BoxDecoration(color: Colors.white, border: Border(top: BorderSide(color: Colors.grey.shade200))),
           child: Row(children: [
-            Expanded(child: TextField(controller: _msgCtrl, decoration: InputDecoration(hintText: 'اكتب رسالتك...', border: OutlineInputBorder(borderRadius: BorderRadius.circular(24), borderSide: BorderSide.none), filled: true, contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10)), maxLines: null, textDirection: TextDirection.rtl)),
+            Expanded(child: TextField(controller: _msgCtrl, decoration: InputDecoration(hintText: 'اكتب رسالتك...', border: OutlineInputBorder(borderRadius: BorderRadius.circular(24), borderSide: BorderSide.none), filled: true, contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10)), maxLines: null)),
             const SizedBox(width: 8),
             CircleAvatar(backgroundColor: const Color(0xFF2563EB), child: IconButton(icon: const Icon(Icons.send, color: Colors.white, size: 20), onPressed: _send)),
           ]),
