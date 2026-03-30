@@ -53,6 +53,16 @@ class BrandingService {
       return _sessionCache!;
     }
 
+    // --- إنترنت مقطوع أو فشل الخادم ---
+    if (forceRefresh) {
+      final cached = await _loadFromDisk();
+      if (cached != null) {
+        _sessionCache = cached;
+        if (kDebugMode) debugPrint('[Branding] ⚠ network failed on forceRefresh, fallback to disk cache');
+        return _sessionCache!;
+      }
+    }
+
     // 4) Fallback
     if (kDebugMode) debugPrint('[Branding] ⚠ using defaults (network + cache failed)');
     _sessionCache ??= BrandingModel.defaults;

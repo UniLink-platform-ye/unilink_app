@@ -32,11 +32,18 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   Future<void> _init() async {
-    await Future.delayed(const Duration(milliseconds: 1800));
-    if (!mounted) return;
     final auth = context.read<AuthProvider>();
-    await auth.loadSession();
+    final tp   = context.read<ThemeProvider>();
+
+    // ننتظر انتهاء تأثير الانيميشن وجلب الجلسة وتحديث الهوية معاً
+    await Future.wait([
+      Future.delayed(const Duration(milliseconds: 1800)),
+      auth.loadSession(),
+      tp.refreshBranding(),
+    ]);
+
     if (!mounted) return;
+    
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
