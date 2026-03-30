@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../providers/auth_provider.dart';
+import '../providers/theme_provider.dart';
 import 'auth/login_screen.dart';
 import 'home/home_screen.dart';
 
@@ -21,8 +23,10 @@ class _SplashScreenState extends State<SplashScreen>
   void initState() {
     super.initState();
     _ctrl  = AnimationController(vsync: this, duration: const Duration(milliseconds: 900));
-    _fade  = Tween<double>(begin: 0, end: 1).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeIn));
-    _scale = Tween<double>(begin: .7, end: 1).animate(CurvedAnimation(parent: _ctrl, curve: Curves.elasticOut));
+    _fade  = Tween<double>(begin: 0, end: 1).animate(
+        CurvedAnimation(parent: _ctrl, curve: Curves.easeIn));
+    _scale = Tween<double>(begin: .7, end: 1).animate(
+        CurvedAnimation(parent: _ctrl, curve: Curves.elasticOut));
     _ctrl.forward();
     _init();
   }
@@ -42,12 +46,24 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   @override
-  void dispose() { _ctrl.dispose(); super.dispose(); }
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
+    final tp       = context.watch<ThemeProvider>();
+    final branding = tp.branding;
+    final primary  = branding.primaryColor;
+
+    // لون خلفية الـ Splash = اللون الأساسي الداكن
+    final splashBg = HSLColor.fromColor(primary)
+        .withLightness(0.18)
+        .toColor();
+
     return Scaffold(
-      backgroundColor: const Color(0xFF1E3A5F),
+      backgroundColor: splashBg,
       body: Center(
         child: FadeTransition(
           opacity: _fade,
@@ -56,29 +72,51 @@ class _SplashScreenState extends State<SplashScreen>
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                // ── الشعار ──────────────────────────────────────
                 Container(
-                  width: 100, height: 100,
+                  width: 100,
+                  height: 100,
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.15),
                     borderRadius: BorderRadius.circular(28),
                   ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(24),
-                    child: Image.asset('assets/images/logo.png', fit: BoxFit.cover),
+                    child: _buildLogoWidget(branding.logoUrl),
                   ),
                 ),
+
                 const SizedBox(height: 20),
-                const Text(
-                  'TRUSTED SOCIAL NETWORK\nPLATFORM',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: 0.5),
-                ),
-                const SizedBox(height: 6),
+
+                // ── اسم المنصة ─────────────────────────────────
                 Text(
-                  'منصة التواصل الأكاديمي الموثوقة',
-                  style: TextStyle(color: Colors.white.withOpacity(0.75), fontSize: 14),
+                  branding.platformName.toUpperCase(),
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontFamily: branding.fontFamily,
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 0.5,
+                  ),
                 ),
+
+                const SizedBox(height: 6),
+
+                // ── الـ Tagline ─────────────────────────────────
+                if (branding.platformTagline.isNotEmpty)
+                  Text(
+                    branding.platformTagline,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontFamily: branding.fontFamily,
+                      color: Colors.white.withOpacity(0.75),
+                      fontSize: 14,
+                    ),
+                  ),
+
                 const SizedBox(height: 40),
+
                 SizedBox(
                   width: 40,
                   child: LinearProgressIndicator(
@@ -93,5 +131,19 @@ class _SplashScreenState extends State<SplashScreen>
         ),
       ),
     );
+  }
+
+  Widget _buildLogoWidget(String? logoUrl) {
+    if (logoUrl != null && logoUrl.isNotEmpty) {
+      return CachedNetworkImage(
+        imageUrl: logoUrl,
+        fit: BoxFit.cover,
+        errorWidget: (_, __, ___) =>
+            Image.asset('assets/images/logo.png', fit: BoxFit.cover),
+        placeholder: (_, __) =>
+            Image.asset('assets/images/logo.png', fit: BoxFit.cover),
+      );
+    }
+    return Image.asset('assets/images/logo.png', fit: BoxFit.cover);
   }
 }

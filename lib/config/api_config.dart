@@ -19,10 +19,12 @@ class ApiConfig {
   static String get serverIp => _serverIp;
 
   // Auth
-  static String get login      => '$_host/auth/login.php';
-  static String get verifyOtp   => '$_host/auth/verify_otp.php';
-  static String get resendOtp   => '$_host/auth/resend_otp.php';
-  static String get register    => '$_host/auth/register.php';
+  static String get login          => '$_host/auth/login.php';
+  static String get verifyOtp      => '$_host/auth/verify_otp.php';
+  static String get resendOtp      => '$_host/auth/resend_otp.php';
+  static String get register       => '$_host/auth/register.php';
+  static String get forgotPassword => '$_host/auth/forgot_password.php';
+  static String get resetPassword  => '$_host/auth/reset_password.php';
 
   // Content
   static String get feed         => '$_host/feed.php';
@@ -40,4 +42,8 @@ class ApiConfig {
   static String get support      => '$_host/support.php';
   static String get search       => '$_host/search.php';
   static String get groupsManage => '$_host/groups_manage.php';
+  static String get branding     => '$_host/branding.php';
+
+  /// رابط قاعدي للأصول (الشعار وما شابه)
+  static String get baseUrl => 'http://$_serverIp/Trusted-Social-Network-Platform';
 }

@@ -1,20 +1,22 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import '../../providers/auth_provider.dart';
 import '../home/home_screen.dart';
 
 class OtpScreen extends StatefulWidget {
   final String emailMasked;
   const OtpScreen({super.key, required this.emailMasked});
-  @override State<OtpScreen> createState() => _OtpScreenState();
+  @override
+  State<OtpScreen> createState() => _OtpScreenState();
 }
 
 class _OtpScreenState extends State<OtpScreen> {
   final List<TextEditingController> _ctrls = List.generate(6, (_) => TextEditingController());
   final List<FocusNode>             _nodes = List.generate(6, (_) => FocusNode());
-  int   _seconds = 300; // 5 دقائق
-  int   _resendCooldown = 0; // عد تنازلي لإعادة الإرسال (ثانية)
+  int  _seconds      = 300;
+  int  _resendCooldown = 60;
   Timer? _timer;
   Timer? _resendTimer;
   String? _error;
@@ -23,9 +25,8 @@ class _OtpScreenState extends State<OtpScreen> {
   void initState() {
     super.initState();
     _startTimer();
-    _resendCooldown = 60;
     _resendTimer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (_resendCooldown > 0) { setState(() => _resendCooldown--); }
+      if (_resendCooldown > 0) setState(() => _resendCooldown--);
     });
   }
 
@@ -34,14 +35,14 @@ class _OtpScreenState extends State<OtpScreen> {
     _seconds = 300;
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (_seconds > 0) { setState(() => _seconds--); }
-      else { _timer?.cancel(); }
+      else              { _timer?.cancel(); }
     });
   }
 
   String get _timeStr {
     final m = _seconds ~/ 60;
     final s = _seconds % 60;
-    return '${m.toString().padLeft(2,'0')}:${s.toString().padLeft(2,'0')}';
+    return '${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
   }
 
   String get _otp => _ctrls.map((c) => c.text).join();
@@ -66,7 +67,7 @@ class _OtpScreenState extends State<OtpScreen> {
     if (_resendCooldown > 0) return;
     setState(() => _error = null);
     final auth = context.read<AuthProvider>();
-    final res = await auth.resendOtp();
+    final res  = await auth.resendOtp();
     if (!mounted) return;
     if (res['success'] == true) {
       setState(() {
@@ -92,18 +93,21 @@ class _OtpScreenState extends State<OtpScreen> {
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
+    final cs   = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context);
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
       resizeToAvoidBottomInset: true,
-      appBar: AppBar(title: const Text('التحقق برمز OTP'), leading: const BackButton()),
+      appBar: AppBar(
+        title: Text(l10n.otpTitle),
+        leading: const BackButton(),
+      ),
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
             return SingleChildScrollView(
               padding: EdgeInsets.only(
-                left: 24,
-                right: 24,
-                top: 24,
+                left: 24, right: 24, top: 24,
                 bottom: 24 + MediaQuery.of(context).viewInsets.bottom,
               ),
               child: ConstrainedBox(
@@ -113,39 +117,63 @@ class _OtpScreenState extends State<OtpScreen> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.mark_email_read_outlined, size: 64, color: Color(0xFF2563EB)),
+                      Icon(
+                        Icons.mark_email_read_outlined,
+                        size:  64,
+                        color: cs.primary,
+                      ),
                       const SizedBox(height: 16),
-                      Text('أرسلنا رمزاً إلى ${widget.emailMasked}', textAlign: TextAlign.center,
-                        style: const TextStyle(fontSize: 15, color: Color(0xFF475569))),
+
+                      Text(
+                        l10n.otpSentTo(widget.emailMasked),
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 15,
+                          color:    cs.onSurface.withOpacity(0.65),
+                        ),
+                      ),
                       const SizedBox(height: 8),
-                      Text(_timeStr, textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800,
-                          color: _seconds < 60 ? Colors.red : const Color(0xFF2563EB))),
+
+                      Text(
+                        _timeStr,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize:   22,
+                          fontWeight: FontWeight.w800,
+                          color:      _seconds < 60 ? cs.error : cs.primary,
+                        ),
+                      ),
                       const SizedBox(height: 32),
 
+                      // ── خانات OTP ──────────────────────────────────
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: List.generate(6, (i) => SizedBox(
                           width: 46, height: 56,
                           child: TextFormField(
-                            controller: _ctrls[i],
-                            focusNode: _nodes[i],
-                            maxLength: 1,
+                            controller:   _ctrls[i],
+                            focusNode:    _nodes[i],
+                            maxLength:    1,
                             keyboardType: TextInputType.number,
-                            textAlign: TextAlign.center,
+                            textAlign:    TextAlign.center,
                             style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
                             decoration: InputDecoration(
                               counterText: '',
-                              filled: true, fillColor: Colors.white,
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
-                                borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
-                              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12),
-                                borderSide: const BorderSide(color: Color(0xFF2563EB), width: 2)),
+                              filled:      true,
+                              fillColor:   cs.surfaceContainerHighest,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(color: cs.outlineVariant),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(color: cs.primary, width: 2),
+                              ),
                             ),
                             onChanged: (v) {
-                              if (v.isNotEmpty && i < 5) { FocusScope.of(context).requestFocus(_nodes[i + 1]); }
-                              if (v.isEmpty && i > 0)     { FocusScope.of(context).requestFocus(_nodes[i - 1]); }
-                              if (_otp.length == 6)       { _verify(); }
+                              if (v.isNotEmpty && i < 5) FocusScope.of(context).requestFocus(_nodes[i + 1]);
+                              if (v.isEmpty && i > 0)    FocusScope.of(context).requestFocus(_nodes[i - 1]);
+                              if (_otp.length == 6)      _verify();
                             },
                           ),
                         )),
@@ -154,25 +182,38 @@ class _OtpScreenState extends State<OtpScreen> {
 
                       if (_error != null) Padding(
                         padding: const EdgeInsets.only(bottom: 12),
-                        child: Text(_error!, textAlign: TextAlign.center,
-                          style: const TextStyle(color: Color(0xFFDC2626), fontSize: 13)),
+                        child: Text(
+                          _error!,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: cs.error, fontSize: 13),
+                        ),
                       ),
 
                       ElevatedButton(
                         onPressed: auth.isLoading || _seconds == 0 ? null : _verify,
                         style: ElevatedButton.styleFrom(minimumSize: const Size.fromHeight(52)),
                         child: auth.isLoading
-                            ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                            : const Text('تحقق من الرمز'),
+                            ? const SizedBox(height: 20, width: 20,
+                                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                            : Text(l10n.verifyButton),
                       ),
 
                       const SizedBox(height: 16),
+
                       TextButton.icon(
                         onPressed: (_resendCooldown > 0 || auth.isLoading) ? null : _resendOtp,
-                        icon: Icon(Icons.refresh, size: 20, color: _resendCooldown > 0 ? Colors.grey : const Color(0xFF2563EB)),
+                        icon: Icon(Icons.refresh, size: 20,
+                            color: _resendCooldown > 0 ? cs.onSurface.withOpacity(0.3) : cs.primary),
                         label: Text(
-                          _resendCooldown > 0 ? 'إعادة إرسال الرمز ($_resendCooldown ث)' : 'إعادة إرسال الرمز',
-                          style: TextStyle(color: _resendCooldown > 0 ? Colors.grey : const Color(0xFF2563EB), fontSize: 14),
+                          _resendCooldown > 0
+                              ? l10n.resendCooldown(_resendCooldown)
+                              : l10n.resendCode,
+                          style: TextStyle(
+                            color:    _resendCooldown > 0
+                                ? cs.onSurface.withOpacity(0.3)
+                                : cs.primary,
+                            fontSize: 14,
+                          ),
                         ),
                       ),
                     ],

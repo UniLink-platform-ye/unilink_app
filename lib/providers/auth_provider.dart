@@ -106,6 +106,48 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  // ── نسيت كلمة المرور: المرحلة 1 — طلب OTP ─────────────
+  String? _resetToken;
+
+  Future<Map<String, dynamic>> forgotPassword(String email) async {
+    _isLoading = true; notifyListeners();
+    try {
+      final res = await ApiService.post(ApiConfig.forgotPassword, {'email': email.trim()});
+      if (res['success'] == true) {
+        _resetToken = res['data']?['reset_token'] as String?;
+      }
+      return res;
+    } finally {
+      _isLoading = false; notifyListeners();
+    }
+  }
+
+  // ── نسيت كلمة المرور: المرحلة 2 — تأكيد OTP + كلمة مرور جديدة ─
+  Future<Map<String, dynamic>> resetPassword({
+    required String otp,
+    required String newPassword,
+    required String confirmPassword,
+  }) async {
+    if (_resetToken == null || _resetToken!.isEmpty) {
+      return {'success': false, 'error': 'انتهت صلاحية الجلسة. أعد طلب إعادة التعيين.'};
+    }
+    _isLoading = true; notifyListeners();
+    try {
+      final res = await ApiService.post(ApiConfig.resetPassword, {
+        'reset_token':      _resetToken,
+        'otp':              otp.trim(),
+        'new_password':     newPassword,
+        'confirm_password': confirmPassword,
+      });
+      if (res['success'] == true) {
+        _resetToken = null; // مسح بعد النجاح
+      }
+      return res;
+    } finally {
+      _isLoading = false; notifyListeners();
+    }
+  }
+
   // ── تسجيل الخروج ───────────────────────────────────────
   Future<void> logout() async {
     await FcmService.unregisterToken();
