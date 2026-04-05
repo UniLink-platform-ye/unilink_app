@@ -54,7 +54,7 @@ class _CommentsScreenState extends State<CommentsScreen> {
   }
 
   Future<void> _deleteComment(int cid) async {
-    final r = await ApiService.delete(ApiConfig.comments, params: {'id': cid.toString()});
+    final r = await ApiService.delete(ApiConfig.comments, body: {'id': cid});
     if (r['success'] == true && mounted) {
       _loadComments();
     }

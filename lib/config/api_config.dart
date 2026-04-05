@@ -128,6 +128,8 @@ class ApiConfig {
   static String get calendar => '$_baseUrl/calendar.php';
   static String get reports => '$_baseUrl/reports.php';
   static String get support => '$_baseUrl/support.php';
-  static String get search => '$_baseUrl/search.php';
-  static String get groupsManage => '$_baseUrl/groups_manage.php';
+  static String get search        => '$_baseUrl/search.php';
+  static String get groupsManage  => '$_baseUrl/groups_manage.php';
+  static String get comments      => '$_baseUrl/comments.php';
+  static String get branding      => '$_baseUrl/branding.php';
 }
