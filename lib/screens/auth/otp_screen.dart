@@ -95,7 +95,7 @@ class _OtpScreenState extends State<OtpScreen> {
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
     final cs   = Theme.of(context).colorScheme;
-    final l10n = AppLocalizations.of(context);
+    final l10n = AppLocalizations.of(context)!
 
     return Scaffold(
       resizeToAvoidBottomInset: true,

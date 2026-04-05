@@ -76,7 +76,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   }
 
   void _showSuccess() {
-    final l10n = AppLocalizations.of(context);
+    final l10n = AppLocalizations.of(context)!
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -123,7 +123,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
     final cs   = Theme.of(context).colorScheme;
-    final l10n = AppLocalizations.of(context);
+    final l10n = AppLocalizations.of(context)!
 
     final titles   = [l10n.step1Title,    l10n.step2Title,              l10n.step3Title];
     final subtitles = [l10n.step1Subtitle, l10n.step2Subtitle(_emailMasked), l10n.step3Subtitle];

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 import 'services/fcm_service.dart';
 import 'providers/auth_provider.dart';
@@ -28,9 +30,21 @@ class UniLinkApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => AuthProvider()),
       ],
       child: MaterialApp(
-        title: 'Secure Uni Network',
+        title: 'UniLink Network',
         debugShowCheckedModeBanner: false,
         theme: _buildTheme(),
+        // ── اللغة والترجمة ─────────────────────────────
+        localizationsDelegates: const [
+          AppLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+        ],
+        supportedLocales: const [
+          Locale('ar'),
+          Locale('en'),
+        ],
+        locale: const Locale('ar'),
         home: const SplashScreen(),
       ),
     );
