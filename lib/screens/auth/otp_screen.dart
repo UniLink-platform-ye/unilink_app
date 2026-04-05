@@ -146,37 +146,61 @@ class _OtpScreenState extends State<OtpScreen> {
                       const SizedBox(height: 32),
 
                       // ── خانات OTP ──────────────────────────────────
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: List.generate(6, (i) => SizedBox(
-                          width: 46, height: 56,
-                          child: TextFormField(
-                            controller:   _ctrls[i],
-                            focusNode:    _nodes[i],
-                            maxLength:    1,
-                            keyboardType: TextInputType.number,
-                            textAlign:    TextAlign.center,
-                            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
-                            decoration: InputDecoration(
-                              counterText: '',
-                              filled:      true,
-                              fillColor:   cs.surfaceContainerHighest,
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(color: cs.outlineVariant),
+                      Directionality(
+                        textDirection: TextDirection.ltr,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: List.generate(6, (i) => SizedBox(
+                            width: 46, height: 56,
+                            child: TextFormField(
+                              autofocus:    i == 0,
+                              controller:   _ctrls[i],
+                              focusNode:    _nodes[i],
+                              maxLength:    6, // السماح باللصق لعدة أرقام
+                              keyboardType: TextInputType.number,
+                              textAlign:    TextAlign.center,
+                              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
+                              decoration: InputDecoration(
+                                counterText: '',
+                                filled:      true,
+                                fillColor:   cs.surfaceContainerHighest,
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: BorderSide(color: cs.outlineVariant),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: BorderSide(color: cs.primary, width: 2),
+                                ),
                               ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(color: cs.primary, width: 2),
-                              ),
+                              onChanged: (v) {
+                                // 1) التحقق مما إذا كان هناك لصق لنص كامل 
+                                if (v.length > 1) {
+                                  final pasted = v.replaceAll(RegExp(r'\D'), '');
+                                  for (int j = 0; j < 6; j++) {
+                                    if (j < pasted.length) {
+                                      _ctrls[j].text = pasted[j];
+                                    } else {
+                                      _ctrls[j].clear();
+                                    }
+                                  }
+                                  if (pasted.length >= 6) {
+                                    FocusScope.of(context).requestFocus(_nodes[5]);
+                                    _verify();
+                                  } else {
+                                    FocusScope.of(context).requestFocus(_nodes[pasted.length]);
+                                  }
+                                  return;
+                                }
+
+                                // 2) إدخال حرف واحد
+                                if (v.isNotEmpty && i < 5) FocusScope.of(context).requestFocus(_nodes[i + 1]);
+                                if (v.isEmpty && i > 0)    FocusScope.of(context).requestFocus(_nodes[i - 1]);
+                                if (_otp.length == 6)      _verify();
+                              },
                             ),
-                            onChanged: (v) {
-                              if (v.isNotEmpty && i < 5) FocusScope.of(context).requestFocus(_nodes[i + 1]);
-                              if (v.isEmpty && i > 0)    FocusScope.of(context).requestFocus(_nodes[i - 1]);
-                              if (_otp.length == 6)      _verify();
-                            },
-                          ),
-                        )),
+                          )),
+                        ),
                       ),
                       const SizedBox(height: 16),
 
