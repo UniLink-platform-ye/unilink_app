@@ -7,7 +7,8 @@ import '../home/home_screen.dart';
 
 class OtpScreen extends StatefulWidget {
   final String emailMasked;
-  const OtpScreen({super.key, required this.emailMasked});
+  final String? devOtp;
+  const OtpScreen({super.key, required this.emailMasked, this.devOtp});
   @override
   State<OtpScreen> createState() => _OtpScreenState();
 }
