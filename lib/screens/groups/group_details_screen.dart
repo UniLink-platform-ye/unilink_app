@@ -1,14 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:provider/provider.dart';
-import 'package:url_launcher/url_launcher.dart';
 
-import '../../providers/auth_provider.dart';
 import '../../config/api_config.dart';
 import '../../services/api_service.dart';
 import '../calendar/calendar_screen.dart';
 import '../file_center/file_upload_screen.dart';
-import '../home/comments_screen.dart';
 
 class GroupDetailsScreen extends StatefulWidget {
   final Map<String, dynamic> group;
@@ -161,12 +156,6 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> with SingleTick
     if (_loadingDetails) {
       return const Center(child: CircularProgressIndicator());
     }
-    
-    final auth = context.watch<AuthProvider>();
-    final currentUserId = auth.user?['user_id'] as int?;
-    final role = auth.user?['role'] as String?;
-    final isOwnerOrAdmin = (currentUserId != null && currentUserId == g['created_by']) || role == 'admin' || role == 'supervisor';
-
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
@@ -218,55 +207,19 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> with SingleTick
               );
             }
             return Column(
-              children: [
-                if (isOwnerOrAdmin)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: OutlinedButton.icon(
-                      icon: const Icon(Icons.person_add),
-                      label: const Text('إضافة عضو'),
-                      onPressed: () async {
-                        final u = await showSearch(context: context, delegate: _UserSearchDelegate());
-                        if (u != null && mounted) {
-                          final r = await ApiService.post(ApiConfig.groupsManage, {
-                            'action': 'add_member',
-                            'group_id': groupId,
-                            'user_id': u['user_id'],
-                          });
-                          if (r['success'] == true) {
-                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تمت إضافة العضو بنجاح')));
-                            _loadDetails();
-                          } else {
-                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(r['error']?.toString() ?? 'فشل إضافة العضو')));
-                          }
-                        }
-                      },
+              children: members
+                  .map(
+                    (m) => ListTile(
+                      leading: const CircleAvatar(child: Icon(Icons.person)),
+                      title: Text(m['full_name'] ?? ''),
+                      subtitle: Text(m['user_role'] ?? ''),
+                      trailing: Text(
+                        m['member_role'] ?? '',
+                        style: const TextStyle(fontSize: 11, color: Colors.grey),
+                      ),
                     ),
-                  ),
-                ...members.map((m) {
-                  final uid = m['user_id'] as int?;
-                  final isOwner = m['member_role'] == 'owner';
-                  return ListTile(
-                    leading: const CircleAvatar(child: Icon(Icons.person)),
-                    title: Text(m['full_name'] ?? ''),
-                    subtitle: Text(m['user_role'] ?? ''),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          m['member_role'] ?? '',
-                          style: const TextStyle(fontSize: 11, color: Colors.grey),
-                        ),
-                        if (isOwnerOrAdmin && !isOwner && uid != null)
-                          IconButton(
-                            icon: const Icon(Icons.remove_circle_outline, color: Colors.red, size: 20),
-                            onPressed: () => _removeMember(uid),
-                          ),
-                      ],
-                    ),
-                  );
-                }),
-              ],
+                  )
+                  .toList(),
             );
           },
         ),
@@ -274,44 +227,11 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> with SingleTick
     );
   }
 
-  Future<void> _removeMember(int uid) async {
-    final sure = await showDialog<bool>(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('تأكيد الإزالة'),
-        content: const Text('هل أنت متأكد من رغبتك في إزالة هذا العضو من المجموعة؟'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('إلغاء')),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('إزالة', style: TextStyle(color: Colors.red))),
-        ],
-      )
-    );
-    if (sure != true) return;
-    
-    final r = await ApiService.post(ApiConfig.groupsManage, {
-      'action': 'remove_member',
-      'group_id': groupId,
-      'user_id': uid,
-    });
-    
-    if (mounted) {
-      if (r['success'] == true) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تمت الإزالة بنجاح')));
-        _loadDetails();
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(r['error']?.toString() ?? 'حدث خطأ أثناء الإزالة')));
-      }
-    }
-  }
-
   Widget _buildPostsTab() {
     if (_loadingPosts) return const Center(child: CircularProgressIndicator());
     if (_posts.isEmpty) {
       return const Center(child: Text('لا توجد منشورات في هذه المجموعة بعد'));
     }
-    
-    final currentUserId = context.watch<AuthProvider>().user?['user_id'] as int?;
-    
     return RefreshIndicator(
       onRefresh: _loadPosts,
       child: ListView.builder(
@@ -319,57 +239,11 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> with SingleTick
         itemCount: _posts.length,
         itemBuilder: (_, i) {
           final p = _posts[i] as Map<String, dynamic>;
-          final postUserId = p['user_id'] as int?;
-          final isMine = currentUserId != null && currentUserId == postUserId;
-          
           return Card(
             margin: const EdgeInsets.only(bottom: 8),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                ListTile(
-                  title: Text(p['content'] ?? ''),
-                  subtitle: Text(p['full_name'] ?? ''),
-                  trailing: isMine
-                      ? PopupMenuButton<String>(
-                          icon: const Icon(Icons.more_vert),
-                          itemBuilder: (_) => [
-                            const PopupMenuItem(value: 'edit', child: Text('تعديل')),
-                            const PopupMenuItem(value: 'delete', child: Text('حذف', style: TextStyle(color: Colors.red))),
-                          ],
-                          onSelected: (v) {
-                            if (v == 'delete') _deletePost(p);
-                            if (v == 'edit') _editPost(p);
-                          },
-                        )
-                      : PopupMenuButton<String>(
-                          icon: const Icon(Icons.more_vert),
-                          itemBuilder: (_) => [
-                            const PopupMenuItem(value: 'report', child: Text('الإبلاغ عن المنشور')),
-                          ],
-                          onSelected: (v) async {
-                            if (v == 'report') {
-                              final reason = await _showReportDialog(context);
-                              if (reason != null && mounted) {
-                                await ApiService.post(ApiConfig.reports, {'post_id': p['post_id'], 'reason': reason});
-                                if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم إرسال البلاغ للمراجعة')));
-                              }
-                            }
-                          },
-                        ),
-                ),
-                const Divider(height: 1),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    TextButton.icon(
-                      onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => CommentsScreen(post: p))),
-                      icon: const Icon(Icons.comment_outlined, size: 20),
-                      label: Text('التعليقات (${p['comments_count'] ?? 0})', style: const TextStyle(color: Colors.grey)),
-                    ),
-                  ],
-                ),
-              ],
+            child: ListTile(
+              title: Text(p['content'] ?? ''),
+              subtitle: Text(p['full_name'] ?? ''),
             ),
           );
         },
@@ -390,35 +264,12 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> with SingleTick
         itemBuilder: (_, i) {
           final f = _files[i] as Map<String, dynamic>;
           final name = (f['title'] as String?)?.isNotEmpty == true ? f['title'] as String : (f['original_name'] as String? ?? 'ملف');
-          final url = f['download_url'] as String?;
-          
           return Card(
             margin: const EdgeInsets.only(bottom: 8),
             child: ListTile(
               leading: const Icon(Icons.insert_drive_file_outlined),
               title: Text(name),
               subtitle: Text('رفع بواسطة: ${f['uploader_name'] ?? ''}'),
-              trailing: IconButton(
-                icon: const Icon(Icons.download_rounded, color: Colors.blue),
-                onPressed: () async {
-                  if (url != null && url.isNotEmpty) {
-                    final uri = Uri.tryParse(url);
-                    if (uri != null && await canLaunchUrl(uri)) {
-                      await launchUrl(uri, mode: LaunchMode.externalApplication);
-                    } else if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('فشل فتح رابط التحميل')));
-                    }
-                  }
-                },
-              ),
-              onTap: () async {
-                if (url != null && url.isNotEmpty) {
-                  final uri = Uri.tryParse(url);
-                  if (uri != null && await canLaunchUrl(uri)) {
-                    await launchUrl(uri, mode: LaunchMode.externalApplication);
-                  }
-                }
-              },
             ),
           );
         },
@@ -508,135 +359,5 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> with SingleTick
       ),
     );
   }
-
-  Future<void> _deletePost(Map<String, dynamic> post) async {
-    final sure = await showDialog<bool>(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('تأكيد الحذف'),
-        content: const Text('هل أنت متأكد من رغبتك في حذف هذا المنشور؟'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('إلغاء')),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('حذف', style: TextStyle(color: Colors.red))),
-        ],
-      )
-    );
-    if (sure != true) return;
-    
-    final r = await ApiService.delete(ApiConfig.posts, params: {'id': post['post_id'].toString()});
-    if (context.mounted) {
-      if (r['success'] == true) _loadPosts();
-      else ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(r['error']?.toString() ?? 'حدث خطأ')));
-    }
-  }
-
-  Future<void> _editPost(Map<String, dynamic> post) async {
-    final ctrl = TextEditingController(text: post['content'] ?? '');
-    final newContent = await showDialog<String>(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('تعديل المنشور'),
-        content: TextField(controller: ctrl, maxLines: 4, decoration: const InputDecoration(border: OutlineInputBorder())),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, null), child: const Text('إلغاء')),
-          ElevatedButton(onPressed: () => Navigator.pop(context, ctrl.text), child: const Text('حفظ')),
-        ],
-      )
-    );
-
-    if (newContent == null || newContent.trim().isEmpty || newContent == post['content']) return;
-
-    final r = await ApiService.post(ApiConfig.posts, {'action': 'edit', '_method': 'PUT', 'post_id': post['post_id'], 'content': newContent.trim()});
-    if (context.mounted) {
-      if (r['success'] == true) _loadPosts();
-      else ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(r['error']?.toString() ?? 'حدث خطأ في التعديل')));
-    }
-  }
-
-  Future<String?> _showReportDialog(BuildContext context) async {
-    String? selected = 'inappropriate_content';
-    final reasons = <String, String>{
-      'spam': 'رسائل مزعجة / دعاية',
-      'harassment': 'مضايقة أو إساءة',
-      'inappropriate_content': 'محتوى غير مناسب',
-      'misinformation': 'معلومات مضللة',
-      'copyright_violation': 'انتهاك حقوق نشر',
-      'other': 'أخرى',
-    };
-    return showDialog<String>(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('إبلاغ عن منشور'),
-        content: StatefulBuilder(
-          builder: (ctx, setState) => Column(
-            mainAxisSize: MainAxisSize.min,
-            children: reasons.entries
-                .map((e) => RadioListTile<String>(
-                      title: Text(e.value),
-                      value: e.key,
-                      groupValue: selected,
-                      onChanged: (v) => setState(() => selected = v),
-                    ))
-                .toList(),
-          ),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, null), child: const Text('إلغاء')),
-          ElevatedButton(onPressed: () => Navigator.pop(context, selected), child: const Text('إرسال')),
-        ],
-      ),
-    );
-  }
 }
 
-class _UserSearchDelegate extends SearchDelegate<Map<String, dynamic>?> {
-  @override
-  String get searchFieldLabel => 'ابحث عن زميل...';
-
-  @override
-  List<Widget> buildActions(BuildContext context) {
-    return [if (query.isNotEmpty) IconButton(icon: const Icon(Icons.clear), onPressed: () => query = '')];
-  }
-
-  @override
-  Widget buildLeading(BuildContext context) {
-    return IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => close(context, null));
-  }
-
-  @override
-  Widget buildResults(BuildContext context) => _buildList(context);
-
-  @override
-  Widget buildSuggestions(BuildContext context) => _buildList(context);
-
-  Widget _buildList(BuildContext context) {
-    if (query.trim().isEmpty) return const Center(child: Text('ابحث بالاسم أو القسم'));
-    return FutureBuilder<Map<String, dynamic>>(
-      future: ApiService.get(ApiConfig.users, params: {'q': query}),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
-        final res = snapshot.data;
-        if (res == null || res['success'] != true) return const Center(child: Text('حدث خطأ أثناء البحث'));
-        final users = res['data']?['users'] as List? ?? [];
-        if (users.isEmpty) return const Center(child: Text('لم يتم العثور على أحد'));
-        
-        return ListView.separated(
-          itemCount: users.length,
-          separatorBuilder: (_, __) => const Divider(height: 0),
-          itemBuilder: (context, i) {
-            final u = users[i] as Map<String, dynamic>;
-            return ListTile(
-              leading: CircleAvatar(
-                backgroundColor: const Color(0xFF2563EB),
-                child: Text((u['full_name'] as String? ?? 'U')[0].toUpperCase(), style: const TextStyle(color: Colors.white)),
-              ),
-              title: Text(u['full_name'] ?? '', style: const TextStyle(fontWeight: FontWeight.w600)),
-              subtitle: Text(u['department'] ?? '', style: const TextStyle(fontSize: 12)),
-              onTap: () => close(context, u),
-            );
-          },
-        );
-      },
-    );
-  }
-}

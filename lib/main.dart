@@ -1,69 +1,81 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'services/fcm_service.dart';
 import 'providers/auth_provider.dart';
-import 'providers/theme_provider.dart';
-import 'providers/locale_provider.dart';
 import 'screens/splash_screen.dart';
 import 'config/api_config.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await ApiConfig.loadHost();
+  if (kReleaseMode && !ApiConfig.isConfigured) {
+    throw StateError('API_BASE_URL must be configured for release builds.');
+  }
   await Firebase.initializeApp();
   await FcmService.initialize();
-
-  // تحميل الثيم وبيانات الهوية مرة واحدة
-  final themeProvider  = ThemeProvider();
-  final localeProvider = LocaleProvider();
-  await Future.wait([themeProvider.load(), localeProvider.load()]);
-
-  runApp(UniLinkApp(
-    themeProvider:  themeProvider,
-    localeProvider: localeProvider,
-  ));
+  runApp(const UniLinkApp());
 }
 
 class UniLinkApp extends StatelessWidget {
-  final ThemeProvider  themeProvider;
-  final LocaleProvider localeProvider;
-
-  const UniLinkApp({
-    super.key,
-    required this.themeProvider,
-    required this.localeProvider,
-  });
+  const UniLinkApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
-        ChangeNotifierProvider.value(value: themeProvider),
-        ChangeNotifierProvider.value(value: localeProvider),
       ],
-      child: Consumer2<ThemeProvider, LocaleProvider>(
-        builder: (context, tp, lp, child) {
-          return MaterialApp(
-            title:             tp.branding.platformName,
-            debugShowCheckedModeBanner: false,
-            theme:      tp.buildTheme(Brightness.light),
-            darkTheme:  tp.buildTheme(Brightness.dark),
-            themeMode:  tp.themeMode,
-            locale:     lp.locale,
-            supportedLocales: const [Locale('ar'), Locale('en')],
-            localizationsDelegates: const [
-              AppLocalizations.delegate,
-              GlobalMaterialLocalizations.delegate,
-              GlobalWidgetsLocalizations.delegate,
-              GlobalCupertinoLocalizations.delegate,
-            ],
-            home: const SplashScreen(),
-          );
-        },
+      child: MaterialApp(
+        title: 'Secure Uni Network',
+        debugShowCheckedModeBanner: false,
+        theme: _buildTheme(),
+        home: const SplashScreen(),
+      ),
+    );
+  }
+
+  ThemeData _buildTheme() {
+    return ThemeData(
+      useMaterial3: true,
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: const Color(0xFF2563EB),
+        brightness: Brightness.light,
+      ),
+      appBarTheme: const AppBarTheme(
+        backgroundColor: Color(0xFF2563EB),
+        foregroundColor: Colors.white,
+        elevation: 0,
+        centerTitle: true,
+        titleTextStyle: TextStyle(
+          fontFamily: 'Cairo',
+          fontWeight: FontWeight.w700,
+          fontSize: 18,
+          color: Colors.white,
+        ),
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFF2563EB),
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 24),
+          textStyle: const TextStyle(fontFamily: 'Cairo', fontWeight: FontWeight.w700, fontSize: 15),
+        ),
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: Colors.grey.shade50,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF2563EB), width: 2)),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      ),
+      cardTheme: CardTheme(
+        elevation: 0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: const BorderSide(color: Color(0xFFE2E8F0))),
+        color: Colors.white,
       ),
     );
   }

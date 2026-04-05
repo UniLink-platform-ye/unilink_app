@@ -19,7 +19,12 @@ class AuthProvider extends ChangeNotifier {
     if (savedUser != null && token != null) {
       _user = savedUser;
       notifyListeners();
+      return;
     }
+
+    await ApiService.clearAll();
+    _user = null;
+    _pendingToken = null;
   }
 
   // ── المرحلة 1: email + password → OTP ─────────────────
@@ -32,6 +37,10 @@ class AuthProvider extends ChangeNotifier {
       });
       if (res['success'] == true) {
         _pendingToken = res['data']?['pending_token'];
+      } else if (res['auth_expired'] == true) {
+        await ApiService.clearAll();
+        _user = null;
+        _pendingToken = null;
       }
       return res;
     } finally {
@@ -56,6 +65,10 @@ class AuthProvider extends ChangeNotifier {
       final res = await ApiService.post(ApiConfig.resendOtp, body);
       if (res['success'] == true && res['data'] != null) {
         _pendingToken = res['data']?['pending_token'];
+      } else if (res['auth_expired'] == true) {
+        await ApiService.clearAll();
+        _user = null;
+        _pendingToken = null;
       }
       return res;
     } finally {
@@ -85,6 +98,10 @@ class AuthProvider extends ChangeNotifier {
         _isLoading = false; notifyListeners();
         // ✅ نسجّل FCM بعد الانتقال لتجنب تأخير الـ UI
         FcmService.registerToken();
+      } else if (res['auth_expired'] == true) {
+        await ApiService.clearAll();
+        _user = null;
+        _pendingToken = null;
       }
       return res;
     } finally {
@@ -99,48 +116,10 @@ class AuthProvider extends ChangeNotifier {
       final res = await ApiService.post(ApiConfig.register, data);
       if (res['success'] == true) {
         _pendingToken = res['data']?['pending_token'];
-      }
-      return res;
-    } finally {
-      _isLoading = false; notifyListeners();
-    }
-  }
-
-  // ── نسيت كلمة المرور: المرحلة 1 — طلب OTP ─────────────
-  String? _resetToken;
-
-  Future<Map<String, dynamic>> forgotPassword(String email) async {
-    _isLoading = true; notifyListeners();
-    try {
-      final res = await ApiService.post(ApiConfig.forgotPassword, {'email': email.trim()});
-      if (res['success'] == true) {
-        _resetToken = res['data']?['reset_token'] as String?;
-      }
-      return res;
-    } finally {
-      _isLoading = false; notifyListeners();
-    }
-  }
-
-  // ── نسيت كلمة المرور: المرحلة 2 — تأكيد OTP + كلمة مرور جديدة ─
-  Future<Map<String, dynamic>> resetPassword({
-    required String otp,
-    required String newPassword,
-    required String confirmPassword,
-  }) async {
-    if (_resetToken == null || _resetToken!.isEmpty) {
-      return {'success': false, 'error': 'انتهت صلاحية الجلسة. أعد طلب إعادة التعيين.'};
-    }
-    _isLoading = true; notifyListeners();
-    try {
-      final res = await ApiService.post(ApiConfig.resetPassword, {
-        'reset_token':      _resetToken,
-        'otp':              otp.trim(),
-        'new_password':     newPassword,
-        'confirm_password': confirmPassword,
-      });
-      if (res['success'] == true) {
-        _resetToken = null; // مسح بعد النجاح
+      } else if (res['auth_expired'] == true) {
+        await ApiService.clearAll();
+        _user = null;
+        _pendingToken = null;
       }
       return res;
     } finally {

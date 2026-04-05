@@ -284,6 +284,7 @@ class _TicketDetailsScreenState extends State<TicketDetailsScreen> {
                               borderSide: BorderSide.none,
                             ),
                             filled: true,
+                            fillColor: const Color(0xFFF1F5F9),
                             contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                           ),
                           maxLines: null,

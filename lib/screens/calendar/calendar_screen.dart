@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 
-import '../../providers/auth_provider.dart';
 import '../../config/api_config.dart';
 import '../../services/api_service.dart';
 
@@ -36,7 +34,6 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final currentUserId = context.watch<AuthProvider>().user?['user_id'] as int?;
     return Scaffold(
       appBar: AppBar(
         title: const Text('التقويم الأكاديمي'),
@@ -81,57 +78,16 @@ class _CalendarScreenState extends State<CalendarScreen> {
                       subtitleParts.add('من ${e['start_at']}');
                       if (e['end_at'] != null) subtitleParts.add('إلى ${e['end_at']}');
 
-                      final isOwner = currentUserId != null && currentUserId == e['owner_user_id'];
-
                       return ListTile(
                         leading: Icon(icon, color: const Color(0xFF2563EB)),
                         title: Text(e['title'] ?? ''),
                         subtitle: Text(subtitleParts.join(' • '), maxLines: 2, overflow: TextOverflow.ellipsis),
-                        trailing: isOwner
-                            ? Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  IconButton(
-                                    icon: const Icon(Icons.edit, size: 20),
-                                    onPressed: () async {
-                                      await Navigator.push(context, MaterialPageRoute(builder: (_) => EventFormScreen(initial: e)));
-                                      if (mounted) _load();
-                                    },
-                                  ),
-                                  IconButton(
-                                    icon: const Icon(Icons.delete, size: 20, color: Colors.red),
-                                    onPressed: () => _deleteEvent(e),
-                                  ),
-                                ],
-                              )
-                            : null,
                         onTap: () => _showEventDetailsDialog(e),
                       );
                     },
                   ),
                 ),
     );
-  }
-
-  Future<void> _deleteEvent(Map<String, dynamic> e) async {
-    final sure = await showDialog<bool>(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('تأكيد الحذف'),
-        content: const Text('هل أنت متأكد من حذف هذا الحدث؟'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('إلغاء')),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('حذف', style: TextStyle(color: Colors.red))),
-        ],
-      )
-    );
-    if (sure != true) return;
-    
-    final r = await ApiService.delete('${ApiConfig.calendar}?id=${e['event_id']}');
-    if (mounted) {
-      if (r['success'] == true) _load();
-      else ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(r['error']?.toString() ?? 'حدث خطأ')));
-    }
   }
 
   void _showEventDetailsDialog(Map<String, dynamic> e) {
@@ -257,11 +213,7 @@ class _EventFormScreenState extends State<EventFormScreen> {
         'event_type': _type,
         'all_day': _allDay,
       };
-      
-      final isEdit = widget.initial != null;
-      final url = isEdit ? '${ApiConfig.calendar}?id=${widget.initial!['event_id']}' : ApiConfig.calendar;
-      final r = isEdit ? await ApiService.put(url, body) : await ApiService.post(url, body);
-      
+      final r = await ApiService.post(ApiConfig.calendar, body);
       if (!mounted) return;
       if (r['success'] == true) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم حفظ الحدث')));

@@ -1,26 +1,61 @@
 import 'dart:convert';
-import 'package:flutter/foundation.dart';
-import 'package:http/http.dart' as http;
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'dart:io';
+
+import 'package:flutter/foundation.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:http/http.dart' as http;
 
 class ApiService {
   static const _storage = FlutterSecureStorage();
   static const String _tokenKey = 'unilink_jwt';
-  static const String _userKey  = 'unilink_user';
-
-  /// تفعيل تتبع الـ API على الكونسول (يعمل تلقائياً في وضع Debug فقط)
-  static const bool _enableApiLog = true;
+  static const String _userKey = 'unilink_user';
+  static const bool _enableApiLog =
+      bool.fromEnvironment('ENABLE_API_LOGS', defaultValue: false);
 
   static void _log(String tag, Object message, [Object? extra]) {
-    if (kDebugMode && _enableApiLog) {
-      final time = DateTime.now().toIso8601String().substring(11, 23);
-      print('[$time] [API::$tag] $message');
-      if (extra != null) print('[$time] [API::$tag] ↳ $extra');
+    if (!kDebugMode || !_enableApiLog) {
+      return;
+    }
+
+    final time = DateTime.now().toIso8601String().substring(11, 23);
+    debugPrint('[$time] [API::$tag] $message');
+    if (extra != null) {
+      debugPrint('[$time] [API::$tag] -> ${_sanitizeForLog(extra)}');
     }
   }
 
-  // ─── Token Management ─────────────────────────────────────
+  static Object? _sanitizeForLog(Object? value) {
+    if (value is Map) {
+      return value.map((key, val) => MapEntry(
+            key,
+            _isSensitiveKey(key.toString()) ? '[redacted]' : _sanitizeForLog(val),
+          ));
+    }
+
+    if (value is List) {
+      return value.map(_sanitizeForLog).toList(growable: false);
+    }
+
+    if (value is String) {
+      final lower = value.toLowerCase();
+      if (lower.contains('bearer ') || lower.contains('token') || value.length > 160) {
+        return '[redacted]';
+      }
+      return value;
+    }
+
+    return value;
+  }
+
+  static bool _isSensitiveKey(String key) {
+    final lower = key.toLowerCase();
+    return lower.contains('password') ||
+        lower.contains('token') ||
+        lower.contains('secret') ||
+        lower.contains('authorization') ||
+        lower.contains('otp');
+  }
+
   static Future<void> saveToken(String token) =>
       _storage.write(key: _tokenKey, value: token);
 
@@ -32,9 +67,12 @@ class ApiService {
       _storage.write(key: _userKey, value: jsonEncode(user));
 
   static Future<Map<String, dynamic>?> getUser() async {
-    final s = await _storage.read(key: _userKey);
-    if (s == null) return null;
-    return jsonDecode(s) as Map<String, dynamic>;
+    final raw = await _storage.read(key: _userKey);
+    if (raw == null) {
+      return null;
+    }
+
+    return jsonDecode(raw) as Map<String, dynamic>;
   }
 
   static Future<void> clearAll() async {
@@ -42,7 +80,6 @@ class ApiService {
     await _storage.delete(key: _userKey);
   }
 
-  // ─── HTTP Helpers ──────────────────────────────────────────
   static Future<Map<String, String>> _headers() async {
     final token = await getToken();
     return {
@@ -52,49 +89,83 @@ class ApiService {
     };
   }
 
-  static Map<String, dynamic> _parse(http.Response res) {
+  static Map<String, dynamic> _parse(http.Response response) {
     try {
-      return jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
-    } catch (e) {
-      _log('PARSE', 'Invalid JSON response (${res.statusCode})', res.body.length > 300 ? '${res.body.substring(0, 300)}...' : res.body);
-      return {'success': false, 'error': 'Invalid server response (${res.statusCode})'};
+      return jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+    } catch (_) {
+      return {
+        'success': false,
+        'error': 'Invalid server response (${response.statusCode})',
+      };
     }
   }
 
   static Map<String, dynamic> _parseRawBytes(List<int> bytes, int statusCode) {
     try {
       return jsonDecode(utf8.decode(bytes)) as Map<String, dynamic>;
-    } catch (e) {
-      _log('PARSE', 'Invalid JSON response ($statusCode)', bytes.length > 300 ? '${utf8.decode(bytes.take(300).toList())}...' : utf8.decode(bytes));
-      return {'success': false, 'error': 'Invalid server response ($statusCode)'};
+    } catch (_) {
+      return {
+        'success': false,
+        'error': 'Invalid server response ($statusCode)',
+      };
     }
   }
 
-  // ─── GET ───────────────────────────────────────────────────
+  static Future<Map<String, dynamic>> _finalizeResponse(
+    int statusCode,
+    Map<String, dynamic> payload,
+  ) async {
+    if (statusCode == 401) {
+      await clearAll();
+      payload['auth_expired'] = true;
+    }
+
+    return payload;
+  }
+
   static Future<Map<String, dynamic>> get(
     String url, {
     Map<String, String>? params,
   }) async {
     final uri = Uri.parse(url).replace(queryParameters: params);
-    _log('GET', uri.toString(), params?.isNotEmpty == true ? params : null);
     final stopwatch = Stopwatch()..start();
+    _log('GET', uri.toString(), params);
+
     try {
-      final res = await http.get(uri, headers: await _headers());
+      final response = await http.get(uri, headers: await _headers());
       stopwatch.stop();
-      _log('GET', '${res.statusCode} ${uri.path} (${stopwatch.elapsedMilliseconds}ms)');
-      if (res.statusCode >= 400) _log('GET', 'BODY', res.body.length > 500 ? '${res.body.substring(0, 500)}...' : res.body);
-      final out = _parse(res);
-      if (out.containsKey('error') || (out['success'] == false)) _log('GET', 'RESPONSE', out);
-      return out;
+      _log('GET', '${response.statusCode} ${uri.path} (${stopwatch.elapsedMilliseconds}ms)');
+      return _finalizeResponse(response.statusCode, _parse(response));
     } catch (e, st) {
       stopwatch.stop();
-      _log('GET', 'ERROR', e);
-      _log('GET', 'STACK', st.toString().split('\n').take(5).join('\n'));
-      return {'success': false, 'error': 'تعذر الاتصال بالخادم. يرجى التحقق من الشبكة.'};
+      _log('GET', 'ERROR', {'error': e.toString(), 'stack': st.toString()});
+      rethrow;
     }
   }
 
-  // ─── MULTIPART (File Upload) ───────────────────────────────
+  static Future<Map<String, dynamic>> post(
+    String url,
+    Map<String, dynamic> body,
+  ) async {
+    final stopwatch = Stopwatch()..start();
+    _log('POST', url, body);
+
+    try {
+      final response = await http.post(
+        Uri.parse(url),
+        headers: await _headers(),
+        body: jsonEncode(body),
+      );
+      stopwatch.stop();
+      _log('POST', '${response.statusCode} $url (${stopwatch.elapsedMilliseconds}ms)');
+      return _finalizeResponse(response.statusCode, _parse(response));
+    } catch (e, st) {
+      stopwatch.stop();
+      _log('POST', 'ERROR', {'error': e.toString(), 'stack': st.toString()});
+      rethrow;
+    }
+  }
+
   static Future<Map<String, dynamic>> postMultipart(
     String url, {
     required File file,
@@ -103,121 +174,65 @@ class ApiService {
   }) async {
     final token = await getToken();
     final uri = Uri.parse(url);
-    _log('MP_POST', uri.toString(), fields);
     final stopwatch = Stopwatch()..start();
+    _log('MP_POST', uri.toString(), fields);
 
     try {
-      final req = http.MultipartRequest('POST', uri);
-      req.headers.addAll({
+      final request = http.MultipartRequest('POST', uri);
+      request.headers.addAll({
         'Accept': 'application/json',
         if (token != null) 'Authorization': 'Bearer $token',
       });
-      if (fields != null) req.fields.addAll(fields);
-      req.files.add(await http.MultipartFile.fromPath(fieldName, file.path));
-
-      final res = await req.send();
-      final bytes = await res.stream.toBytes();
-      stopwatch.stop();
-      _log('MP_POST', '${res.statusCode} $url (${stopwatch.elapsedMilliseconds}ms)');
-      if (res.statusCode >= 400) {
-        final raw = utf8.decode(bytes);
-        _log('MP_POST', 'BODY', raw.length > 500 ? '${raw.substring(0, 500)}...' : raw);
+      if (fields != null) {
+        request.fields.addAll(fields);
       }
-      final out = _parseRawBytes(bytes, res.statusCode);
-      if (out.containsKey('error') || (out['success'] == false)) _log('MP_POST', 'RESPONSE', out);
-      return out;
+      request.files.add(await http.MultipartFile.fromPath(fieldName, file.path));
+
+      final response = await request.send();
+      final bytes = await response.stream.toBytes();
+      stopwatch.stop();
+      _log('MP_POST', '${response.statusCode} $url (${stopwatch.elapsedMilliseconds}ms)');
+
+      final parsed = _parseRawBytes(bytes, response.statusCode);
+      return _finalizeResponse(response.statusCode, parsed);
     } catch (e, st) {
       stopwatch.stop();
-      _log('MP_POST', 'ERROR', e);
-      _log('MP_POST', 'STACK', st.toString().split('\n').take(5).join('\n'));
-      return {'success': false, 'error': 'تعذر رفع الملف. يرجى التحقق من الشبكة.'};
+      _log('MP_POST', 'ERROR', {'error': e.toString(), 'stack': st.toString()});
+      rethrow;
     }
   }
 
-  // ─── POST ──────────────────────────────────────────────────
-  static Future<Map<String, dynamic>> post(
-    String url,
-    Map<String, dynamic> body,
-  ) async {
-    _log('POST', url, body);
-    final stopwatch = Stopwatch()..start();
-    try {
-      final res = await http.post(
-        Uri.parse(url),
-        headers: await _headers(),
-        body: jsonEncode(body),
-      );
-      stopwatch.stop();
-      _log('POST', '${res.statusCode} $url (${stopwatch.elapsedMilliseconds}ms)');
-      if (res.statusCode >= 400) _log('POST', 'BODY', res.body.length > 500 ? '${res.body.substring(0, 500)}...' : res.body);
-      final out = _parse(res);
-      if (out.containsKey('error') || (out['success'] == false)) _log('POST', 'RESPONSE', out);
-      return out;
-    } catch (e, st) {
-      stopwatch.stop();
-      _log('POST', 'ERROR', e);
-      _log('POST', 'STACK', st.toString().split('\n').take(5).join('\n'));
-      return {'success': false, 'error': 'تعذر الاتصال بالخادم. يرجى التحقق من الشبكة.'};
-    }
-  }
-
-  // ─── PUT ───────────────────────────────────────────────────
-  static Future<Map<String, dynamic>> put(
-    String url,
-    Map<String, dynamic> body,
-  ) async {
-    _log('PUT', url, body);
-    final stopwatch = Stopwatch()..start();
-    try {
-      final res = await http.put(
-        Uri.parse(url),
-        headers: await _headers(),
-        body: jsonEncode(body),
-      );
-      stopwatch.stop();
-      _log('PUT', '${res.statusCode} $url (${stopwatch.elapsedMilliseconds}ms)');
-      if (res.statusCode >= 400) _log('PUT', 'BODY', res.body.length > 500 ? '${res.body.substring(0, 500)}...' : res.body);
-      final out = _parse(res);
-      if (out.containsKey('error') || (out['success'] == false)) _log('PUT', 'RESPONSE', out);
-      return out;
-    } catch (e, st) {
-      stopwatch.stop();
-      _log('PUT', 'ERROR', e);
-      _log('PUT', 'STACK', st.toString().split('\n').take(5).join('\n'));
-      return {'success': false, 'error': 'تعذر الاتصال بالخادم. يرجى التحقق من الشبكة.'};
-    }
-  }
-
-  // ─── DELETE ───────────────────────────────────────────────
   static Future<Map<String, dynamic>> delete(
     String url, {
-    Map<String, String>? params,
     Map<String, dynamic>? body,
   }) async {
-    final uri = Uri.parse(url).replace(queryParameters: params);
-    _log('DELETE', uri.toString(), body);
     final stopwatch = Stopwatch()..start();
+    _log('DELETE', url, body);
+
     try {
-      final req = http.Request('DELETE', uri);
-      req.headers.addAll(await _headers());
-      if (body != null) req.body = jsonEncode(body);
-      final res = await req.send();
-      final raw = await res.stream.bytesToString();
-      stopwatch.stop();
-      _log('DELETE', '${res.statusCode} $url (${stopwatch.elapsedMilliseconds}ms)');
-      if (res.statusCode >= 400) _log('DELETE', 'BODY', raw.length > 500 ? '${raw.substring(0, 500)}...' : raw);
-      try {
-        final out = jsonDecode(raw) as Map<String, dynamic>;
-        if (out.containsKey('error') || (out['success'] == false)) _log('DELETE', 'RESPONSE', out);
-        return out;
-      } catch (_) {
-        return {'success': false, 'error': 'Invalid response'};
+      final request = http.Request('DELETE', Uri.parse(url));
+      request.headers.addAll(await _headers());
+      if (body != null) {
+        request.body = jsonEncode(body);
       }
+
+      final response = await request.send();
+      final raw = await response.stream.bytesToString();
+      stopwatch.stop();
+      _log('DELETE', '${response.statusCode} $url (${stopwatch.elapsedMilliseconds}ms)');
+
+      Map<String, dynamic> parsed;
+      try {
+        parsed = jsonDecode(raw) as Map<String, dynamic>;
+      } catch (_) {
+        parsed = {'success': false, 'error': 'Invalid response'};
+      }
+
+      return _finalizeResponse(response.statusCode, parsed);
     } catch (e, st) {
       stopwatch.stop();
-      _log('DELETE', 'ERROR', e);
-      _log('DELETE', 'STACK', st.toString().split('\n').take(5).join('\n'));
-      return {'success': false, 'error': 'تعذر الاتصال بالخادم. يرجى التحقق من الشبكة.'};
+      _log('DELETE', 'ERROR', {'error': e.toString(), 'stack': st.toString()});
+      rethrow;
     }
   }
 }

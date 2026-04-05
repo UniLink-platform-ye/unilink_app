@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../config/api_config.dart';
 import '../../services/api_service.dart';
@@ -104,18 +103,10 @@ class _FileCenterScreenState extends State<FileCenterScreen> {
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم نسخ رابط التحميل')));
   }
 
-  Future<void> _downloadFile(String url) async {
-    final uri = Uri.tryParse(url);
-    if (uri != null && await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } else if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('فشل فتح رابط التحميل')));
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF1F5F9),
       appBar: AppBar(
         title: const Text('مركز الملفات'),
         actions: [
@@ -234,19 +225,27 @@ class _FileCenterScreenState extends State<FileCenterScreen> {
                                 ),
                                 trailing: PopupMenuButton<String>(
                                   onSelected: (v) {
-                                    if (v == 'download' && url.isNotEmpty) _downloadFile(url);
                                     if (v == 'copy' && url.isNotEmpty) _copyUrl(url);
                                     if (v == 'delete') _deleteFile((f['file_id'] as int));
                                   },
                                   itemBuilder: (_) => [
-                                    const PopupMenuItem(value: 'download', child: Text('تنزيل الملف')),
-                                    const PopupMenuItem(value: 'copy', child: Text('نسخ الرابط')),
+                                    const PopupMenuItem(value: 'copy', child: Text('نسخ رابط التحميل')),
                                     const PopupMenuItem(value: 'delete', child: Text('حذف')),
                                   ],
                                 ),
                                 onTap: url.isEmpty
                                     ? null
-                                    : () => _downloadFile(url),
+                                    : () => showDialog(
+                                          context: context,
+                                          builder: (_) => AlertDialog(
+                                            title: const Text('رابط التحميل'),
+                                            content: SelectableText(url),
+                                            actions: [
+                                              TextButton(onPressed: () => Navigator.pop(context), child: const Text('إغلاق')),
+                                              ElevatedButton(onPressed: () { Navigator.pop(context); _copyUrl(url); }, child: const Text('نسخ')),
+                                            ],
+                                          ),
+                                        ),
                               ),
                             );
                           },
