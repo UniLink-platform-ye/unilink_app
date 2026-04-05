@@ -6,7 +6,8 @@ import '../config/api_config.dart';
 class AuthProvider extends ChangeNotifier {
   Map<String, dynamic>? _user;
   bool _isLoading = false;
-  String? _pendingToken; // مؤقت بين login وverifyOtp
+  String? _pendingToken;
+  String? _resetToken;
 
   Map<String, dynamic>? get user      => _user;
   bool                  get isLoading => _isLoading;
@@ -21,7 +22,6 @@ class AuthProvider extends ChangeNotifier {
       notifyListeners();
       return;
     }
-
     await ApiService.clearAll();
     _user = null;
     _pendingToken = null;
@@ -48,7 +48,7 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  /// إعادة إرسال OTP: إما بالـ pending_token (من شاشة OTP) أو email+password (لحساب غير مفعّل)
+  // ── إعادة إرسال OTP ────────────────────────────────────
   Future<Map<String, dynamic>> resendOtp({String? email, String? password}) async {
     _isLoading = true; notifyListeners();
     try {
@@ -89,14 +89,11 @@ class AuthProvider extends ChangeNotifier {
       });
       if (res['success'] == true) {
         final data = res['data'] as Map<String, dynamic>;
-        // ✅ نحفظ التوكن والمستخدم أولاً
         await ApiService.saveToken(data['token'] as String);
         await ApiService.saveUser(data['user'] as Map<String, dynamic>);
         _user         = data['user'] as Map<String, dynamic>;
         _pendingToken = null;
-        // ✅ نُبلّغ الـ UI الآن (بعد حفظ التوكن) ليُبنى HomeScreen بتوكن جاهز
         _isLoading = false; notifyListeners();
-        // ✅ نسجّل FCM بعد الانتقال لتجنب تأخير الـ UI
         FcmService.registerToken();
       } else if (res['auth_expired'] == true) {
         await ApiService.clearAll();
@@ -127,6 +124,46 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  // ── نسيت كلمة المرور: المرحلة 1 — طلب OTP ─────────────
+  Future<Map<String, dynamic>> forgotPassword(String email) async {
+    _isLoading = true; notifyListeners();
+    try {
+      final res = await ApiService.post(ApiConfig.forgotPassword, {'email': email.trim()});
+      if (res['success'] == true) {
+        _resetToken = res['data']?['reset_token'] as String?;
+      }
+      return res;
+    } finally {
+      _isLoading = false; notifyListeners();
+    }
+  }
+
+  // ── نسيت كلمة المرور: المرحلة 2 — تأكيد OTP + كلمة مرور جديدة ─
+  Future<Map<String, dynamic>> resetPassword({
+    required String otp,
+    required String newPassword,
+    required String confirmPassword,
+  }) async {
+    if (_resetToken == null || _resetToken!.isEmpty) {
+      return {'success': false, 'error': 'انتهت صلاحية الجلسة. أعد طلب إعادة التعيين.'};
+    }
+    _isLoading = true; notifyListeners();
+    try {
+      final res = await ApiService.post(ApiConfig.resetPassword, {
+        'reset_token':      _resetToken,
+        'otp':              otp.trim(),
+        'new_password':     newPassword,
+        'confirm_password': confirmPassword,
+      });
+      if (res['success'] == true) {
+        _resetToken = null;
+      }
+      return res;
+    } finally {
+      _isLoading = false; notifyListeners();
+    }
+  }
+
   // ── تسجيل الخروج ───────────────────────────────────────
   Future<void> logout() async {
     await FcmService.unregisterToken();
@@ -134,6 +171,7 @@ class AuthProvider extends ChangeNotifier {
     await ApiService.clearAll();
     _user = null;
     _pendingToken = null;
+    _resetToken = null;
     notifyListeners();
   }
 }

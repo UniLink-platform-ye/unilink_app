@@ -109,10 +109,12 @@ class ApiConfig {
     return '$path/api/v1';
   }
 
-  static String get login => '$_baseUrl/auth/login.php';
-  static String get verifyOtp => '$_baseUrl/auth/verify_otp.php';
-  static String get resendOtp => '$_baseUrl/auth/resend_otp.php';
-  static String get register => '$_baseUrl/auth/register.php';
+  static String get login          => '$_baseUrl/auth/login.php';
+  static String get verifyOtp      => '$_baseUrl/auth/verify_otp.php';
+  static String get resendOtp      => '$_baseUrl/auth/resend_otp.php';
+  static String get register       => '$_baseUrl/auth/register.php';
+  static String get forgotPassword => '$_baseUrl/auth/forgot_password.php';
+  static String get resetPassword  => '$_baseUrl/auth/reset_password.php';
 
   static String get feed => '$_baseUrl/feed.php';
   static String get posts => '$_baseUrl/posts.php';
